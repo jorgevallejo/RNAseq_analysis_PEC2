@@ -1,0 +1,9 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+
+[directorios]
+data/
+results/
+intermediateResults/

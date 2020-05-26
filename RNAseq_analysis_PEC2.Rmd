@@ -1,0 +1,454 @@
+---
+title: "Análisis de datos de expresión (RNA-seq) en muestras de infiltración de tiroides"
+subtitle: "Análisis Datos Ómicos - PEC 2"
+author: "Jorge Vallejo Ortega"
+date: '`r format(Sys.Date(),"%e de %B, %Y")`'
+output:
+  html_document:
+    toc: true
+  pdf_document:
+    number_sections: true
+    toc: true
+header-includes:
+  - \renewcommand{\contentsname}{Índice}
+  
+# Next code for knitting both types of documents automatically comes from https://stackoverflow.com/questions/39662365/knit-one-markdown-file-to-two-output-files/53280491#53280491
+knit: (function(inputFile, encoding) {
+  rmarkdown::render(inputFile, encoding = encoding,
+  output_format = "all",
+  output_dir = "results") })
+# And:
+# https://stackoverflow.com/a/46007686/10647267
+
+#bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+# knitr options
+
+# Do not display code in output document
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      warning = FALSE,
+                      fig.align = "center")
+
+# This is a try:
+knitr::opts_knit$set(stop_on_error = 2L)
+# See ?evaluate::evaluate
+# What I am trying to do is to make knitr stop
+# when an error is found instead of running the
+# complete script.
+```
+\newpage
+# Sumario
+
+
+
+```{r estructura de directorios, results='hide'}
+# 'data' contains raw source data.
+# 'intermediateData' contains .RData objects with processed data.
+# 'results' stores the final report files.
+
+directories <- c("data", "results", "intermediateData")
+
+# Create directories
+lapply(directories, function(x){
+         if (!(dir.exists(x))){
+           dir.create(x)
+         }
+       })
+```
+
+# Objetivos
+
+
+
+# Materiales y métodos
+
+## Muestras y datos de origen
+
+
+## Diseño experimental
+
+
+
+## Procedimiento seguido en el análisis
+
+Los pasos seguidos para realizar el presente análisis han sido los siguientes: 
+
+1. Obtenión de los datos de expresión en bruto.  
+2. Control de calidad de los datos brutos.  
+3. Normalización.  
+4. Control de calidad de los datos normalizados.  
+5. Filtraje no específico.  
+6. Identificación de genes diferencialmente expresados.  
+7. Anotación de los resultados.  
+8. Comparación entre comparaciones.  
+9. Análisis del enriquecimiento de rutas.
+
+### Obtención de los datos en bruto
+
+
+```{r delete results files, eval= FALSE}
+# Run this chunk ONLY if you want to re-do
+# the complete the report FROM THE ORIGINAL DATAS.
+# Remember that the .RData files are there to
+# avoid unnecesarily redoing of long data processing.
+
+file.remove(c("results",
+              "intermediateData"))
+
+
+```
+
+
+```{r libraries, include=FALSE}
+# Load packages
+library(knitr)
+
+```
+
+Los diferentes archivos con los datos en bruto han sido manipulados utilizando R para realizar los controles de calidad y los análisis propiamente dichos. El código completo usado puede consultarse en el apéndice A.
+
+### Control de calidad de los datos en bruto
+Con el control de calidad pretendemos averiguar si los datos de alguna de las muestras presentan defectos o sesgos que desaconsejen usarlos, antes de continuar con el análisis.
+
+En este caso hemos usado examinado los datos de expresión mediante diferenes representaciones gráficas, en busca de anomalías.
+
+
+
+### Normalización de los datos
+
+
+### Control de calidad sobre datos normalizados
+
+### Filtraje no específico
+
+### Identificación de genes diferencialmente expresados
+
+Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo de un factor con seis niveles, siendo esos niveles los grupos a los que está asignada cada muestra:  
+` unique(targets$Grupo)`
+
+```{r matriz de diseño, eval = FALSE}
+library(limma)
+designMat <- model.matrix(~0+targets$Grupo)
+colnames(designMat) <- levels(targets$Grupo)
+rownames(designMat) <- targets$Abreviado
+```
+
+<!-- Para cumplir con el objetivo del estudio, el interés se encuentra en averiguar qué genes presentan cambios significativos entre las muestras "Wash" y las muestras "Eluted". Y además, si esos cambios significativos se mantienen entre los grupos "Control" y "ASD". -->
+
+<!-- Para replicar ese razonamiento, hemos organizado los siguientes contrastes: -->
+
+<!-- WASH vs ELUTED en sujetos CONTROL   -->
+<!-- WASH vs ELUTED en sujetos ASD -->
+
+<!-- También podría valer la pena comprobar si hay interacción entre condición y material. -->
+
+```{r matriz de contrastes, eval = FALSE}
+cont.matrix <- makeContrasts(
+  WvsE.CTRL = CTRL.WASH - CTRL.ELUTED,
+  WvsE.ASD = ASD.WASH - ASD.ELUTED,
+  INT = (CTRL.WASH - CTRL.ELUTED) - (ASD.WASH - ASD.ELUTED),
+  levels = designMat)
+```
+
+```{r estimacion del modelo, eval = FALSE}
+fit <- lmFit(eset_filtered, designMat)
+fit.main <- contrasts.fit(fit, cont.matrix)
+fit.main <- eBayes(fit.main)
+```
+
+### Anotación de las listas de genes
+
+A continuación presentamos una muestra de las listas de genes diferencialmente expresados para cada comparación, incluyendo el símbolo y nombre de cada gen, ordenados por p-valor ajustado.
+
+```{r topTab lists WvsE.CTRL, eval = FALSE}
+topTab_WvsE.CTRL <- topTable(fit.main, number=nrow(fit.main), coef="WvsE.CTRL",
+                              adjust="fdr")
+```
+
+```{r topTab lists WvsE.ASD, eval=FALSE}
+topTab_WvsE.ASD <- topTable(fit.main, number=nrow(fit.main), coef="WvsE.ASD",
+                              adjust="fdr")
+```
+
+```{r topTab lists INT, eval=FALSE}
+topTab_INT <- topTable(fit.main, number=nrow(fit.main), coef="INT",
+                              adjust="fdr")
+```
+
+```{r anotar toptables, eval=FALSE}
+# Generate table from GPL with columns of interest
+geneAnots <- gpl_table[, c("ID", "Gene.Title", "Gene.Symbol", "Entrez.Gene")]
+
+anottopTap <- function(x){
+  annotated <- merge(geneAnots, x, by.x = "ID", by.y = 0)
+  # Sort by adjusted p.value
+  annotated <- annotated[order(annotated$adj.P.Val), ]
+  # Delete row names
+  rownames(annotated) <- NULL
+  return (annotated)
+}
+
+anotopTab_WvsE.CTRL <- anottopTap(topTab_WvsE.CTRL)
+anotopTab_WvsE.ASD <- anottopTap(topTab_WvsE.ASD)
+anotopTab_INT <- anottopTap(topTab_INT)
+```
+
+```{r sample annotated WvsE.CTRL, eval=FALSE}
+anotopTab_WvsE.CTRL$adj.P.Val <- format(anotopTab_WvsE.CTRL$adj.P.Val, digits = 4)
+knitr::kable(anotopTab_WvsE.CTRL[1:6, c("Gene.Title", "Gene.Symbol", "logFC", "adj.P.Val")],
+     row.names = FALSE, scientific = TRUE,
+     caption = "Comparación 1 (WvsE.CTRL): Genes diferencialmente expresados con colas poli-A cortas (WASH) frente a colas poli-A largas (ELUTED) en sujetos control (CTRL).")
+write.csv2(anotopTab_WvsE.CTRL, file = "results/anotopTab_WvsE.CTRL.csv", row.names = FALSE)
+```
+
+
+```{r sample annotated WvsE.ASD, eval=FALSE}
+anotopTab_WvsE.ASD$adj.P.Val <- format(anotopTab_WvsE.ASD$adj.P.Val, digits = 4)
+knitr::kable(anotopTab_WvsE.ASD[1:6, c("Gene.Title", "Gene.Symbol", "logFC", "adj.P.Val")],
+     row.names = FALSE, caption = "Comparación 2 (WvsE.ASD): Genes diferencialmente expresados con colas poli-A cortas (WASH) frente a colas poli-A largas (ELUTED) en sujetos autistas (ASD).")
+write.csv2(anotopTab_WvsE.ASD, file = "results/anotopTab_WvsE.ASD.csv", row.names = FALSE)
+```
+
+```{r sample annotated INT, eval=FALSE}
+knitr::kable(anotopTab_INT[1:6, c("Gene.Title", "Gene.Symbol", "logFC", "adj.P.Val")],
+     row.names = FALSE, digits = 4, scientific = TRUE,
+     caption = " Comparación 3 (INT): Genes que cambian su expresión de forma significativa por interacción entre la condición del sujeto (CONTROL, ASD) y el material examinado (WASH, ELUTED).")
+```
+
+#### Visualización (volcanoplots)
+
+Para la visualización de estos datos elegimos las gráficas conocidas como volcanoplots. Cada gen está representado por un punto, con los cambios de expresión en el eje de abcisas y los p-valores ajustados en el eje de ordenadas. Se muestra en cada gráfica el nombre de los 5 genes más significativos. La línea roja horizontal corresponde al p-valor = 0.05.
+```{r volcanoplots, fig.height=12, fig.width=5, fig.cap= "Volcanoplots de cada una de las listas anotadas de genes en cada una de las comparaciones. Se muestra en cada gráfica en nombre de los 5 genes más significativos. La línea roja horizontal corresponde al p-valor = 0.05.", eval=FALSE}
+par(mfrow=c(3, 1))
+
+contrastes <- colnames(fit.main$coefficients)
+
+for (contrast in 1:length(contrastes)){
+  volcanoplot(fit.main, 
+              coef = contrastes[contrast],
+              highlight = 5, 
+              names = eval(str2expression(
+                paste0("anotopTab_", contrastes[contrast], "$Gene.Symbol"))),
+              main=paste("Genes diferencialmente expresados", contrastes[contrast],
+                         sep = "\n"))
+abline(v=c(-1,1))
+abline(h=-log10(0.05), col="red")
+}
+```
+
+<!-- Sólo examinando las gráficas podemos ver que no tiene sentido examinar los resultados de la comparación por interacción (INT), ya que apenas hay genes con expresión diferencial significativa; y estos, con sólo pequeñas diferencias de expresión. -->
+
+<!-- Sí que son aparentes en cambio las diferencias de expresión significativas en las comparaciones entre "Wash" y "Eluted", aunque sólo con éstas no obtenemos respuesta a la pregunta de si hay diferencias entre "Control" y "ASD". Esto lo exploraremos en los siguientes apartados. -->
+
+### Comparaciones múltiples
+<!-- Debido al diseño experimental y el objetivo del estudio, el interés final no está sencillamente en las listas de genes diferencialmente poliadenilados. Lo que queremos conocer es, de aquellos ARN que presentan diferencias de poliadenilación, cuáles son exclusivos del grupo "Control" y cuáles del grupo "ASD". -->
+
+```{r decidetests, eval=FALSE}
+# as many columns as comparisons and as many rows as genes.
+res <- decideTests(fit.main, method="separate", adjust.method="fdr", p.value=0.1,
+                   lfc = 0)
+# This table can be annotated and saved as a csv file, for example
+```
+
+<!-- Podemos hacer primero una comparación cuantitativa entre las comparaciónes; cuántos genes diferenciales son exclusivos de una de las comparaciones y cuántos son comunes. -->
+
+<!-- Resumen de los resultados: -->
+```{r resumen comparaciones multiples, eval=FALSE}
+sum.res.rows <- apply(abs(res), 1, sum)
+res.selected <- res[sum.res.rows!=0, ]
+print(summary(res))
+```
+
+#### Diagrama de Venn
+```{r venn diagram, fig.height=4.5, fig.width=4.5, eval=FALSE}
+vennDiagram(res.selected[, 1:2], cex=0.9)
+title("Genes en común entre dos comparaciones\n Seleccionados con FDR <0.1",
+      cex.main=0.9)
+```
+
+<!-- A partir del diagrama de Venn, vemos que **223** genes están diferencialmente poliadenilados sólo en las muestras "Control", y **627** sólo en las muestras "ASD". Son estos dos grupos de genes los que exploraremos para investigar las diferencias entre los grupos "Control" y "ASD". -->
+
+<!-- Otro grupo de genes interesantes serían aquellos cuyo perfil de up/down regulación cambia en muestras de sujetos control y sujetos ASD. -->
+
+<!-- Estos tres grupos son los que marcarán nuestra lista definitiva de genes de interés. -->
+
+```{r lista definitiva interes, eval=FALSE}
+# Solo nos interesan aquellos genes que:
+## estan up o down regulados solo en uno de los grupos
+## estan up en un grupo y down en el otro
+dif.res.rows <- apply(res.selected, 1, function(x) {x[1] == x[2]})
+res.selected2 <- res.selected[dif.res.rows == FALSE, ]
+print(summary(res.selected2[, 1:2]))
+
+```
+
+```{r venn diagram lista interes, fig.height=4.5, fig.width=4.5, eval=FALSE}
+vennDiagram(res.selected2[, 1:2], cex=0.9)
+title("Genes en común entre dos comparaciones\n Seleccionados con FDR <0.1",
+      cex.main=0.9)
+```
+
+<!-- En resumen, encontramos **223** genes exclusivamente en sujetos "Control2 cuyos ARNm tienen colas diferencialmente largas o cortas.   -->
+<!-- Encontramos **627** genes exclusivamente en sujetos "ASD" cuyos ARNm tienen colas diferencialmente largas o cortas.   -->
+<!-- **Ningún** gen con diferenciación invertida entre comparaciones. -->
+```{r tablas listas genes exclusivos, eval=FALSE}
+write.csv2(geneAnots[geneAnots$ID %in% rownames(res.selected2), ],
+           file = "results/common-differential-genes.csv", row.names = FALSE)
+# Genes diferenciales exclusivos del grupo Control
+res.control <- res.selected2[(res.selected2[,1] != 0) == TRUE, ]
+write.csv2(geneAnots[geneAnots$ID %in% rownames(res.control), ],
+           file = "results/control-differential-genes.csv", row.names = FALSE)
+# Genes diferenciales exclusivos del grupo ASD
+res.ASD <- res.selected2[(res.selected2[,2] != 0) == TRUE, ]
+write.csv2(geneAnots[geneAnots$ID %in% rownames(res.ASD), ],
+           file = "results/ASD-differential-genes.csv", row.names = FALSE)
+```
+
+
+
+#### Visualización de perfiles de expresión mediante heatmap
+```{r seleccion genes para visualizacion perfiles expresion lista interes, eval=FALSE}
+probesInHeatmap <- rownames(res.selected2)
+HMdata <- eset_filtered[rownames(eset_filtered) %in% probesInHeatmap, ]
+HMdata <- merge(HMdata, geneAnots[, c("ID", "Gene.Symbol")], by.x=0, by.y="ID")
+rownames(HMdata) <- HMdata$Gene.Symbol
+HMdata[, c("Row.names", "Gene.Symbol")] <- NULL
+colnames(HMdata) <- my.targets$X.Abreviado
+no_input_labels <- grep("INPUT", array_labels, value=TRUE, invert = TRUE)
+HMdata <- HMdata[, no_input_labels]
+```
+```{r, eval=FALSE}
+#Colores para ColSideColors:
+colsidecolors <- c("orange", "red", 
+  "orange", "red", "blue",
+  "green", "blue",    "green", 
+  "orange", "red", 
+ "orange", "red", "blue",   
+ "green",  "blue",    "green", 
+ "blue",    "green" )
+```
+```{r Generate heatmap with clustering, eval=FALSE}
+paleta <- colorRampPalette(c("blue", "red"))(n = 299)
+library(gplots)
+
+heatmap.2(as.matrix(HMdata),
+          Rowv = TRUE,
+          Colv = TRUE,
+          dendrogram = "both",
+          main = "Genes diferencialmente expresados \n FDR < 0.1",
+          scale = "row",
+          col = paleta,
+          sepcolor = "white",
+          sepwidth = c(0.05, 0.05),
+          cexRow = 0.5,
+          cexCol = 0.7,
+          key = TRUE,
+          keysize = 1.5,
+          density.info = "histogram",
+          ColSideColors = colsidecolors,
+          tracecol = NULL,
+          srtCol = 30)
+```
+
+<!-- Los mapas de calor (heatmaps) pueden servir para agrupar muestras y genes por similaridad en los patrones de expresión. En este caso, para simplificar, hemos eliminado las muestras del grupo "Input", que no nos están ofreciendo información útil. -->
+
+<!-- Al igual que ocurría al examinar los componentes principales y el dendrograma, las muestras se agrupan sobre todo por material ("Wash" y "Eluted"). Dentro del grupo "Wash", sí que parece haber una separación entre "Control" y "ASD" (derecha del gráfico). -->
+
+<!-- Clave de color para las muestras:   -->
+<!-- Control-Wash: naranja ASD-Wash: azul   -->
+<!-- Control-Eluted: rojo ASD-Eluted: verde -->
+
+
+### Significatividad biológica
+
+<!-- Una vez tenemos nuestras listas de genes anotadas, un herramienta más para interpretar los resultados del estudio es el examen de la significatividad biológica. En este informe, lo que hemos hecho es, a partir de las listas de genes con comportamiento diferencial para las condiciones "Control" y "ASD", comprobar si existen funciones, procesos biológicos o rutas moleculares que aparezcan con más frecuencias en estas listas que en el resto de genes analizados. -->
+
+<!-- Como listas de genes hemos utilizado las siguientes:   -->
+<!-- **Común** - lista completa de genes con comportamiento diferencias en grupo "Control" frente a "ASD".   -->
+<!-- **Control** - lista de genes con comportamiento diferencial exclusivos del grupo "Control" (es un subset de la lista "Común").   -->
+<!-- **ASD** - lista de genes con comportamiento diferencial exclusivos del grupo "ASD" (es un subset de la lista "Común"). -->
+
+<!-- **Universo** - lista de todos los genes detectables con el modelo de array usado en este estudio. -->
+
+```{r lista para significatividad biologica, eval=FALSE}
+
+# Vector of EntrezIDs from the list of genes of interest (probesInHeatmap)
+geneList <- geneAnots[geneAnots$ID %in% probesInHeatmap, 4]
+geneListControl <- as.character(read.csv2("results/control-differential-genes.csv")[, 4])
+geneListASD <- as.character(read.csv2("results/ASD-differential-genes.csv")[, 4])
+universe <- nondup_probes$Entrez.Gene
+```
+
+#### Test de sobrerrepresentación de términos GO
+
+<!-- El análisis estadístico lo hemos realizado con la función _enrichGO()_ del paquete _clusterProfiler_ para el lenguaje R. Esta función devuelve un listado de términos GO estadísticamente más representados en nuestra lista de genes, con respecto a la lista Universo. -->
+
+```{r test de sobrerrepresentacion, eval=FALSE}
+library(clusterProfiler)
+library(org.Hs.eg.db)
+# As universe, I will use all genes represented in the microarray
+# before filtering by IQR
+ego <- enrichGO(gene = geneListControl,
+                universe = universe,
+                OrgDb = org.Hs.eg.db,
+                ont = "CC",
+                pAdjustMethod = "BH",
+                pvalueCutoff = 0.05,
+                qvalueCutoff = 0.2,
+                readable = TRUE)
+
+save(ego, file="intermediateResults/ego.RData")
+```
+
+<!-- Para un valor de corte del p-valor de 0.05, y valor de corte del q-valor de 0.2; no se ha encontrado **ningún** término GO estadísticamente más representado en ninguna de las tres listas con respecto a la lista Universo. -->
+
+#### Gene Set Enrichment Analysis
+
+<!-- Este tipo de análisis está especializado en detectar situaciones en las que las diferencias de expresión son pequeñas, pero coordinadas para un grupo de genes relacionados. En este informe hemos utilizado la función _gseGO_ del paquete _cluseterProfiler_ para realizar este análisis. -->
+```{r Gene Set Enrichment Analysis, eval=FALSE}
+gse_list_ctrl_raw <- anotopTab_WvsE.CTRL[anotopTab_WvsE.CTRL$ID %in% rownames(res.control), ]
+gse_list_ctrl_raw["abs.logFC"] <- abs(gse_list_ctrl_raw[, "logFC"])
+gse_list_ctrl_raw <- gse_list_ctrl_raw[order(gse_list_ctrl_raw$abs.logFC, decreasing = TRUE),
+                               c("abs.logFC", "Entrez.Gene")]
+gse_list_ctrl <- gse_list_ctrl_raw[, "abs.logFC"]
+names(gse_list_ctrl) <- as.character(gse_list_ctrl_raw[, c("Entrez.Gene")])
+
+gse_list_asd_raw <- anotopTab_WvsE.ASD[anotopTab_WvsE.ASD$ID %in% rownames(res.ASD), ]
+gse_list_asd_raw["abs.logFC"] <- abs(gse_list_asd_raw[, "logFC"])
+gse_list_asd_raw <- gse_list_asd_raw[order(gse_list_asd_raw$abs.logFC, decreasing = TRUE),
+                               c("abs.logFC", "Entrez.Gene")]
+gse_list_asd <- gse_list_asd_raw[, "abs.logFC"]
+names(gse_list_asd) <- as.character(gse_list_asd_raw[, c("Entrez.Gene")])
+
+ego2 <- gseGO(geneList = gse_list_ctrl,
+              OrgDb = org.Hs.eg.db,
+              ont = "MF")
+
+ego3 <- gseGO(geneList = gse_list_asd,
+              OrgDb = org.Hs.eg.db,
+              ont = "CC")
+```
+
+<!-- El resultado ha sido el mismo que en el análisis anterior. No se ha detectado ningún grupo de genes especialmente representado en el listado de nuestros genes de interés con ARN diferencialmente poliadenilados. -->
+
+# Resultados
+
+
+# Discusión
+
+
+# Apéndice A: Código
+
+El documento original en formato .Rmd, que incluye el código completo en lenguaje R usado para generar este informe, se puede consultar y descargar en el siguiente repositorio de Github:
+[]()
+
+# Apéndice B: Reproducibilidad
+```{r session_info, include=TRUE, echo=TRUE, results='markup'}
+sessionInfo() # For better reproducibility
+```
+
+
+# Referencias
