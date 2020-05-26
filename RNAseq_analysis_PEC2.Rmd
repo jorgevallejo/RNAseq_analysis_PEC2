@@ -66,6 +66,19 @@ library(knitr)
 
 ```
 
+```{r read data into R}
+# Read targets
+targets <- read.csv("data/targets.csv", stringsAsFactors = FALSE)
+# Read counts
+if (file.exists("intermediateData/counts.RData")){
+  load("intermediateData/counts.RData")
+}else{
+  counts <- read.csv2("data/counts.csv", stringsAsFactors = FALSE)
+  save(counts, file="intermediateData/counts.RData")
+}
+```
+
+
 \newpage
 # Sumario
 
