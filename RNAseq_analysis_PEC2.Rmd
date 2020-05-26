@@ -31,18 +31,7 @@ knitr::opts_chunk$set(echo = FALSE,
                       message = FALSE,
                       warning = FALSE,
                       fig.align = "center")
-
-# This is a try:
-knitr::opts_knit$set(stop_on_error = 2L)
-# See ?evaluate::evaluate
-# What I am trying to do is to make knitr stop
-# when an error is found instead of running the
-# complete script.
 ```
-\newpage
-# Sumario
-
-
 
 ```{r estructura de directorios, results='hide'}
 # 'data' contains raw source data.
@@ -58,6 +47,29 @@ lapply(directories, function(x){
          }
        })
 ```
+
+```{r delete results files, eval= FALSE}
+# Run this chunk ONLY if you want to re-do
+# the complete the report FROM THE ORIGINAL DATAS.
+# Remember that the .RData files are there to
+# avoid unnecesarily redoing of long data processing.
+
+file.remove(c("results",
+              "intermediateData"))
+
+
+```
+
+```{r libraries, include=FALSE}
+# Load packages
+library(knitr)
+
+```
+
+\newpage
+# Sumario
+
+
 
 # Objetivos
 
@@ -89,24 +101,6 @@ Los pasos seguidos para realizar el presente análisis han sido los siguientes:
 ### Obtención de los datos en bruto
 
 
-```{r delete results files, eval= FALSE}
-# Run this chunk ONLY if you want to re-do
-# the complete the report FROM THE ORIGINAL DATAS.
-# Remember that the .RData files are there to
-# avoid unnecesarily redoing of long data processing.
-
-file.remove(c("results",
-              "intermediateData"))
-
-
-```
-
-
-```{r libraries, include=FALSE}
-# Load packages
-library(knitr)
-
-```
 
 Los diferentes archivos con los datos en bruto han sido manipulados utilizando R para realizar los controles de calidad y los análisis propiamente dichos. El código completo usado puede consultarse en el apéndice A.
 
