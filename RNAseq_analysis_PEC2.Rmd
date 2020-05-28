@@ -95,6 +95,21 @@ str(counts)
 <!-- La primera variable es el código del gen? -->
 <!-- Cada variable es una muestra. -->
 
+```{r take samples from each group}
+# Check if there are duplicates of Sample_Name
+# sum(duplicated(targest$Sample_Name))
+
+# Take 10 samples from each group at random
+set.seed(50110528)
+targets_NIT <- targets[targets$Group == "NIT", ]
+targets_NIT <- targets_NIT[sample(nrow(targets_NIT), 10), ]
+
+targets_SFI <- targets[targets$Group == "SFI", ]
+targets_SFI <- targets_SFI[sample(nrow(targets_SFI), 10), ]
+
+targets_ELI <- targets[targets$Group == "ELI", ]
+targets_ELI <- targets_ELI[sample(nrow(targets_ELI), 10), ]
+```
 
 \newpage
 # Sumario
