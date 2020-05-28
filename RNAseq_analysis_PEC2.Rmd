@@ -109,7 +109,21 @@ targets_SFI <- targets_SFI[sample(nrow(targets_SFI), 10), ]
 
 targets_ELI <- targets[targets$Group == "ELI", ]
 targets_ELI <- targets_ELI[sample(nrow(targets_ELI), 10), ]
+
+targets_sampled <- rbind(targets_NIT, targets_SFI, targets_ELI)
 ```
+
+```{r subset counts data frame}
+# Transform experiments name format
+sample_names <- targets_sampled$Sample_Name
+sample_names <- gsub("-", ".", sample_names)
+# Add back gene column
+sample_names <- c("X", sample_names)
+
+#Subset counts data frame with sample names
+counts_subset <- counts[, names(counts) %in% sample_names]
+```
+
 
 \newpage
 # Sumario
