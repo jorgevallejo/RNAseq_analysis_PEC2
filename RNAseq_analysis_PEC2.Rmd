@@ -66,6 +66,65 @@ library(knitr)
 
 ```
 
+```{r read data into R}
+# Read targets
+targets <- read.csv("data/targets.csv", stringsAsFactors = FALSE)
+# Read counts
+if (file.exists("intermediateData/counts.RData")){
+  load("intermediateData/counts.RData")
+}else{
+  counts <- read.csv2("data/counts.csv", stringsAsFactors = FALSE)
+  save(counts, file="intermediateData/counts.RData")
+}
+```
+
+```{r explore data, eval=FALSE}
+# Check loaded data and its structure
+head(targets)
+str(targets)
+
+counts[1:6,1:6]
+str(counts)
+```
+<!-- **Targets** -->
+<!-- Cada observación es una muestra. -->
+<!-- Variables: "Experiment", "SRA_Sample", "Sample_Name", "Grupo_analisis", "body_site", "molecular_data_type", "sex"  -->
+
+<!-- **Counts** -->
+<!-- Cada observación es un ¿gen? -->
+<!-- La primera variable es el código del gen? -->
+<!-- Cada variable es una muestra. -->
+
+```{r take samples from each group}
+# Check if there are duplicates of Sample_Name
+# sum(duplicated(targest$Sample_Name))
+
+# Take 10 samples from each group at random
+set.seed(50110528)
+targets_NIT <- targets[targets$Group == "NIT", ]
+targets_NIT <- targets_NIT[sample(nrow(targets_NIT), 10), ]
+
+targets_SFI <- targets[targets$Group == "SFI", ]
+targets_SFI <- targets_SFI[sample(nrow(targets_SFI), 10), ]
+
+targets_ELI <- targets[targets$Group == "ELI", ]
+targets_ELI <- targets_ELI[sample(nrow(targets_ELI), 10), ]
+
+targets_sampled <- rbind(targets_NIT, targets_SFI, targets_ELI)
+```
+
+```{r subset counts data frame}
+# Transform experiments name format
+sample_names <- targets_sampled$Sample_Name
+sample_names <- gsub("-", ".", sample_names)
+# Add back gene column
+sample_names <- c("X", sample_names)
+
+#Subset counts data frame with sample names
+counts_subset <- counts[, names(counts) %in% sample_names]
+```
+
+
 \newpage
 # Sumario
 
