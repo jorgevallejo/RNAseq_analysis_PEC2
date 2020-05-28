@@ -168,6 +168,17 @@ Con el control de calidad pretendemos averiguar si los datos de alguna de las mu
 
 En este caso hemos usado examinado los datos de expresión mediante diferenes representaciones gráficas, en busca de anomalías.
 
+#### Distribución de los datos en bruto
+
+```{r histogram raw counts}
+library(ggplot2)
+ggplot(counts_subset,
+       aes(x = counts_subset[, 2])) +
+  geom_histogram(fill = "#525252", binwidth = 2000) + 
+  labs(x = "Cuentas", y = "Frecuencia (log10)",
+       title = paste0("Frecuencia de cuentas de la muestra ", names(counts_subset)[2])) +
+  scale_y_log10()
+```
 
 
 ### Normalización de los datos
