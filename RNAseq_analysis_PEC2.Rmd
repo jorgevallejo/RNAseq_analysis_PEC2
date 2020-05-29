@@ -141,6 +141,16 @@ shortnames <- merge(longnames,
 colnames(counts_subset) <- shortnames$ShortName
 ```
 
+```{r order counts_subset rows by Group an sample name}
+# counts_subset <- counts_subset[, order(
+#   substr(colnames(counts_subset), 7, 9),
+#   colnames(counts_subset))]
+
+# Order sample shortnames by group and name
+shortnames_ordered <- shortnames[order(substr(shortnames$ShortName, 7, 9),
+                                         shortnames$ShortName), 2]
+```
+
 
 \newpage
 # Sumario
@@ -193,7 +203,7 @@ ggplot(counts_subset,
        aes(x = counts_subset[, 1])) +
   geom_histogram(fill = "#525252", binwidth = 2000) + 
   labs(x = "Cuentas", y = "Frecuencia (log10)",
-       title = paste0("Frecuencia de cuentas de la muestra ", names(counts_subset)[2])) +
+       title = paste0("Frecuencia de cuentas de la muestra ", names(counts_subset)[1])) +
   scale_y_log10()
 ```
 
@@ -210,6 +220,23 @@ ggplot(pseudoCounts,
   labs(x = "log2(Cuentas + 1)", y = "Frecuencia",
        title = paste0("Frecuencia de pseudocuentas de la muestra ", names(counts_subset)[1]))
 ```
+
+#### Diagramas de cajas
+Con los diagramas de cajas podemos observar y comparar la distribución de las pseudocuentas en las diferentes muestras:
+
+```{r boxplots}
+library('reshape')
+pseudoCounts_melted <- melt(pseudoCounts, variable_name = "Muestras")
+pseudoCounts_melted <- data.frame(df, Grupo = substr(df$Muestras, 7, 9))
+
+ggplot(pseudoCounts_melted, aes(x = Muestras, y = value, fill = Grupo)) +
+  geom_boxplot() +
+  xlab("") +
+  ylab(expression(log[2](count + 1))) +
+  scale_fill_manual(values = c("red", "blue", "green")) +
+  scale_x_discrete(limits = shortnames_ordered)
+```
+
 
 ### Normalización de los datos
 
