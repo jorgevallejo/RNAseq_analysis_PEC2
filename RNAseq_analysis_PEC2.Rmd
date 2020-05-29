@@ -122,6 +122,23 @@ sample_names <- c("X", sample_names)
 
 #Subset counts data frame with sample names
 counts_subset <- counts[, names(counts) %in% sample_names]
+# Make variable X into rownames
+rownames(counts_subset) <- counts_subset$X
+counts_subset <- counts_subset[-1]
+
+# Change colnames from sample name to short name
+## Subset to columns Sample_Name and ShortName
+targets_shortname <- targets[, c(3, 9)]
+## Change Sample_Name format
+targets_shortname$Sample_Name <- gsub("-", ".", targets_shortname$Sample_Name)
+## Merge
+longnames <- data.frame(colnames(counts_subset))
+shortnames <- merge(longnames,
+                    targets_shortname,
+                    by.x = colnames(longnames),
+                    by.y="Sample_Name")
+# Change counts_subset colnames for shortnames
+colnames(counts_subset) <- shortnames$ShortName
 ```
 
 
