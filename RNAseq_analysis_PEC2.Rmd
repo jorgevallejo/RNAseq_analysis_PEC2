@@ -142,10 +142,6 @@ colnames(counts_subset) <- shortnames$ShortName
 ```
 
 ```{r order counts_subset rows by Group an sample name}
-# counts_subset <- counts_subset[, order(
-#   substr(colnames(counts_subset), 7, 9),
-#   colnames(counts_subset))]
-
 # Order sample shortnames by group and name
 shortnames_ordered <- shortnames[order(substr(shortnames$ShortName, 7, 9),
                                          shortnames$ShortName), 2]
@@ -224,17 +220,21 @@ ggplot(pseudoCounts,
 #### Diagramas de cajas
 Con los diagramas de cajas podemos observar y comparar la distribución de las pseudocuentas en las diferentes muestras:
 
-```{r boxplots}
+```{r boxplots, fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
 library('reshape')
 pseudoCounts_melted <- melt(pseudoCounts, variable_name = "Muestras")
-pseudoCounts_melted <- data.frame(df, Grupo = substr(df$Muestras, 7, 9))
+pseudoCounts_melted <- data.frame(pseudoCounts_melted, 
+                                  Grupo = substr(pseudoCounts_melted$Muestras, 7, 9))
 
 ggplot(pseudoCounts_melted, aes(x = Muestras, y = value, fill = Grupo)) +
   geom_boxplot() +
-  xlab("") +
+  xlab("Muestras") +
   ylab(expression(log[2](count + 1))) +
   scale_fill_manual(values = c("red", "blue", "green")) +
-  scale_x_discrete(limits = shortnames_ordered)
+  scale_x_discrete(limits = shortnames_ordered) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = rel(0.8)))
+
+# ggsave(filename = "pseudoCounts_boxplots.png")
 ```
 
 
