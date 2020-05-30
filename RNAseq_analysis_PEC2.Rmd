@@ -263,6 +263,66 @@ ggplot(pseudoCounts_melted, aes(x = value, colour = Muestras, fill = Muestras)) 
 
 En general, el perfil de los histogramas es muy parecido para todas las muestras, y entre los diferentes grupos experimentales.
 
+#### Mapa de calor
+Los mapas de calor ayudan a explorar los parecidos y diferencias entre muestras. Mediante colores que representan las distancias entre muestras, y agrupando jerárquicamente muestras según su similaridad.
+
+```{r heatmap of sample-to-sample distance}
+mat.dist <- as.matrix(dist(t(pseudoCounts)))
+mat.dist <- mat.dist/max(mat.dist)
+
+library('RColorBrewer')
+hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(16)
+# library('mixOmics')
+# cim(mat.dist, color = rev(hmcol), symkey = FALSE, margin = c(9, 9),
+#     save='jpeg')
+# library('OpenImageR')
+# imageShow("cim_mat_dist.jpeg")
+# heatmap(mat.dist, symm = FALSE,
+#         cexRow = 0.8, cexCol = 0.8,
+#         col = rev(hmcol))
+```
+```{r heatmap 2}
+library(gplots)
+
+heatmap.2(mat.dist,
+          Rowv = TRUE,
+          Colv = TRUE,
+          dendrogram = "column",
+          main = "",
+          scale = "none",
+          col = rev(hmcol),
+          sepcolor = "white",
+          sepwidth = c(0.05, 0.05),
+          cexRow = 0.5,
+          cexCol = 0.5,
+          key = TRUE,
+          keysize = 1.5,
+          density.info = "none",
+          tracecol = NULL,
+          srtCol = 30)
+```
+
+Por lo que podemos ver en el mapa de calor, la mayor parte de las muestras del grupo ELI (infiltraciones amplias) se agrupan entre ellas, mientras que el resto de agrupaciones son mezclas de muestras de los grupos SFI (infiltraciones pequeñas) y NIT (sin infiltraciones).
+
+#### Análisis de componentes principales de las muestras
+
+Éste tipo de gráfica se puede usar para reconocer las características clave en sets de datos multidimensionales. Esto es, aquellas características que explican la mayor parte de la variabilidad en los datos.
+
+Al aplicar el análisis sobre nuestros datos, esperamos que las muestras se agrupen por grupo experimental.
+
+```{r plot PCA}
+library('DESeq2')
+library('Biobase')
+annot <- AnnotatedDataFrame(
+  data = data.frame(condition, libType, row.names=colnames(pseudoCount)))
+
+expSet <- new("ExpressionSet",
+              exprs = as.matrix(pseudoCount),
+              phenoData = annot)
+
+DESeq::plotPCA(expSet, intgroup = c("condition", "libType"))
+```
+
 ### Normalización de los datos
 
 
