@@ -142,6 +142,10 @@ colnames(counts_subset) <- shortnames$ShortName
 ```
 
 ```{r order counts_subset rows by Group an sample name}
+counts_subset <- counts_subset[, order(
+  substr(colnames(counts_subset), 7, 9),
+  colnames(counts_subset))]
+
 # Order sample shortnames by group and name
 shortnames_ordered <- shortnames[order(substr(shortnames$ShortName, 7, 9),
                                          shortnames$ShortName), 2]
@@ -222,7 +226,14 @@ Con los diagramas de cajas podemos observar y comparar la distribución de las p
 
 ```{r boxplots, fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
 library('reshape')
-pseudoCounts_melted <- melt(pseudoCounts, variable_name = "Muestras")
+
+if(file.exists("intermediateData/pseudoCounts_melted.RData")){
+  load("intermediateData/pseudoCounts_melted.RData")
+}else{
+  pseudoCounts_melted <- melt(pseudoCounts, variable_name = "Muestras")
+  save(pseudoCounts_melted, file = "intermediateData/pseudoCounts_melted.RData")
+}
+
 pseudoCounts_melted <- data.frame(pseudoCounts_melted, 
                                   Grupo = substr(pseudoCounts_melted$Muestras, 7, 9))
 
@@ -237,6 +248,20 @@ ggplot(pseudoCounts_melted, aes(x = Muestras, y = value, fill = Grupo)) +
 # ggsave(filename = "pseudoCounts_boxplots.png")
 ```
 
+#### Histogramas
+
+Los histogramas nos ofrecen una perspectiva diferente sobre la distribución de las pseudocuentas, más detallada que los diagramas de cajas.
+
+```{r histograms and density plots, fig.cap='Histogramas suavizados de densidades de pseudocuentas en cada muestra, separados por grupo experimental.'}
+ggplot(pseudoCounts_melted, aes(x = value, colour = Muestras, fill = Muestras)) +
+  ylim(c(0, 0.25)) +
+  geom_density(alpha = 0.2, size = 0.25) +
+  facet_wrap(~ Grupo) +
+  theme(legend.position = "none") +
+  xlab(expression(log[2](count + 1)))
+```
+
+En general, el perfil de los histogramas es muy parecido para todas las muestras, y entre los diferentes grupos experimentales.
 
 ### Normalización de los datos
 
