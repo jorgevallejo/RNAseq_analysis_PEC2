@@ -151,6 +151,12 @@ shortnames_ordered <- shortnames[order(substr(shortnames$ShortName, 7, 9),
                                          shortnames$ShortName), 2]
 ```
 
+```{r construct summarizedexperiment object}
+ddsMat <- DESeqDataSetFromMatrix(countData = counts_subset,
+                                 colData = targets_sampled,
+                                 design =  ~ Group)
+```
+
 
 \newpage
 # Sumario
@@ -337,6 +343,18 @@ En el resultado de la gráfica vemos que la separación entre grupos no es clara
 ### Control de calidad sobre datos normalizados
 
 ### Filtraje no específico
+
+Eliminamos del dataset aquellos genes con menos de dos cuentas en total (teniendo en cuenta todas las muestras).
+
+```{r Total de genes en el dataset}
+nrow(counts_subset)
+```
+
+```{r Genes pre-filtrados}
+counts_subset <- counts_subset[rowSums(counts_subset) > 1, ]
+nrow(counts_subset)
+```
+
 
 ### Identificación de genes diferencialmente expresados
 
