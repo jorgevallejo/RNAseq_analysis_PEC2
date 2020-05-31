@@ -355,6 +355,21 @@ counts_subset <- counts_subset[rowSums(counts_subset) > 1, ]
 nrow(counts_subset)
 ```
 
+### Transformación de los datos
+Por lo general, el análisis de datos multidimensional es muy sensible a cambios en la varianza. Por eso hemos transformado los datos para que la medias de cuentas de los diferentes genes presenten aproximadamente la misma varianza.
+
+Debido a que el tamaño del dataset empieza a entrar en un rango mediano (30 muestras), hemos utilizado el método de transformación estabilizadora de la varianza (VST).
+
+
+
+```{r}
+vsd <- vst(ddsMat, blind = FALSE)
+assay(vsd)[1:3, 1:3]
+```
+
+```{r}
+colData(vsd)
+```
 
 ### Identificación de genes diferencialmente expresados
 
