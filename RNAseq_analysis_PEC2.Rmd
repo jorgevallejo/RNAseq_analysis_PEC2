@@ -313,15 +313,23 @@ Al aplicar el análisis sobre nuestros datos, esperamos que las muestras se agru
 ```{r plot PCA}
 library('DESeq2')
 library('Biobase')
+
+# Link ordered shortnames with experimental group
+targets_sampled_ordered <- targets_sampled[order(targets_sampled$Group,
+                        targets_sampled$ShortName), ]
+
 annot <- AnnotatedDataFrame(
-  data = data.frame(condition, libType, row.names=colnames(pseudoCount)))
+  data = data.frame(Group = targets_sampled_ordered$Group,
+                    row.names=colnames(pseudoCounts)))
 
 expSet <- new("ExpressionSet",
-              exprs = as.matrix(pseudoCount),
+              exprs = as.matrix(pseudoCounts),
               phenoData = annot)
 
-DESeq::plotPCA(expSet, intgroup = c("condition", "libType"))
+DESeq::plotPCA(expSet, intgroup =c("Group"))
 ```
+
+En el resultado de la gráfica vemos que la separación entre grupos no es clara. Las muestras de los grupos ELI y NIT sí que en su mayoría se agrupan entre ellas; mientras que las muestras de NIT y SFI están entremezcladas.
 
 ### Normalización de los datos
 
