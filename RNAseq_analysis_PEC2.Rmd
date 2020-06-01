@@ -485,6 +485,25 @@ Genes más significativos con la regulación positiva más acusada:
 head(resSig[order(resSig$log2FoldChange, decreasing = TRUE), ])
 ```
 
+## Gráficas de resultados
+
+### Cuentas de genes concretos
+
+```{r counts plot}
+# Extract the code of the gen with the lowest adjusted p-value
+topGene <- rownames(res)[which.min(res$padj)]
+
+library('ggbeeswarm')
+
+# Extract gene counts
+geneCounts <- plotCounts(ddsMat, gene = topGene, intgroup = c("Group"), returnData = TRUE)
+
+# Draw plot
+ggplot(geneCounts, aes(x = Group, y = count)) +
+  scale_y_log10() +
+  geom_point(size = 3) +
+  geom_line()
+```
 
 
 
