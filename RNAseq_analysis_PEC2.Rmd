@@ -426,15 +426,67 @@ En la gráfica de componentes principales parece que un 70% de la varianza está
 
 ### Identificación de genes diferencialmente expresados
 
-Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo de un factor con seis niveles, siendo esos niveles los grupos a los que está asignada cada muestra:  
-` unique(targets$Grupo)`
+Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo de un factor con tres niveles, siendo esos niveles los grupos a los que está asignada cada muestra:  
+` unique(targets$Group)`
 
-```{r matriz de diseño, eval = FALSE}
-library(limma)
-designMat <- model.matrix(~0+targets$Grupo)
-colnames(designMat) <- levels(targets$Grupo)
-rownames(designMat) <- targets$Abreviado
+```{r differential expression analysis}
+# Remove large unnecesary objects from environment
+rm(vsd)
+
+# Differential expression analysis parallelized
+if(file.exists("intermediateData/ddsMat_dea.RData")){
+  load("intermediateData/ddsMat_dea.RData")
+}else{
+  ddsMat <- DESeq(ddsMat, parallel = TRUE)
+  save(ddsMat, file="intermediateData/ddsMat_dea.RData")
+}
 ```
+
+```{r leg2 fold change NIT vs SFI}
+res <- results(ddsMat, contrast = c("Group", "NIT", "SFI"))
+res
+```
+
+```{r meaning of the columns}
+mcols(res, use.names = TRUE)
+```
+
+```{r summarize the results}
+summary(res)
+```
+
+Características más estrictas para definir qué grupo de genes se consideran significativos:  
+- Disminuir el umbral de la tasa de descubrimiento falsa:
+```{r lower false discovery rate threshold}
+res.05 <- results(ddsMat, alpha = 0.05)
+table(res.05$padj < 0.05)
+```
+
+- Aumentar el umbral de log2 fold change:  
+```{r raise the log2 fold change threshold}
+resLFC1 <- results(ddsMat, lfcThreshold = 1)
+table(resLFC1$padj < 0.1)
+```
+
+Si consideramos aceptable una fracción de falsos positivos del 10%, podemos considerar como significativos todos aquellos genes con un p-valor ajustado por debajo de 0.1:
+```{r genes con p valor ajustado menor de 0.1}
+sum(res$padj < 0.1, na.rm=TRUE)
+```
+
+De la tabla de resultados, seleccionamos sólo esos genes y los ordenamos por la estimación del log2 fold change para recoger los genes más significativos con la regulación negativa más acusada:
+
+```{r strongest down-regulation}
+resSig <- subset(res, padj < 0.1)
+head(resSig[order(resSig$log2FoldChange), ])
+```
+
+Genes más significativos con la regulación positiva más acusada:
+```{r strongest up-regulation}
+head(resSig[order(resSig$log2FoldChange, decreasing = TRUE), ])
+```
+
+
+
 
 <!-- Para cumplir con el objetivo del estudio, el interés se encuentra en averiguar qué genes presentan cambios significativos entre las muestras "Wash" y las muestras "Eluted". Y además, si esos cambios significativos se mantienen entre los grupos "Control" y "ASD". -->
 
