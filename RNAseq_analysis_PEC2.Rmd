@@ -416,6 +416,14 @@ pheatmap(sampleDistMatrix,
 
 Curiosamente, las muestras del grupo experimental ELI se agrupan principalmente en _dos conjuntos diferentes_, mientras que las muestras de los grupos NIT y SFI forman una única agrupación.
 
+### PCA plot
+Análisis de componentes principales
+```{r PCA plot con datos VST}
+plotPCA(vsd, intgroup = "Group")
+```
+
+En la gráfica de componentes principales parece que un 70% de la varianza está explicada por el grupo experimental, con las muestras del grupo control (NIT) a una parte de la gráfica, y las muestras de los grupos ELI y SFI entremezcladas en la otra parte.
+
 ### Identificación de genes diferencialmente expresados
 
 Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo de un factor con seis niveles, siendo esos niveles los grupos a los que está asignada cada muestra:  
