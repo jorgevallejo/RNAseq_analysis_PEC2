@@ -364,7 +364,13 @@ Debido a que el tamaño del dataset empieza a entrar en un rango mediano (30 mue
 
 
 ```{r}
-vsd <- vst(ddsMat, blind = FALSE)
+if(file.exists("intermediateData/vsd.RData")){
+  load("intermediateData/vsd.RData")
+}else{
+  vsd <- vst(ddsMat, blind = FALSE)
+  save(vsd, file = "intermediateData/vsd.RData")
+}
+
 assay(vsd)[1:3, 1:3]
 ```
 
@@ -401,7 +407,7 @@ Mediante un mapa de calor podemos qué muestras se parecen más entre ellas. Esp
 sampleDists <- dist(t(assay(vsd)))
 ```
 
-```{r heatmap with pheatmap, eval = FALSE}
+```{r heatmap with pheatmap}
 library('pheatmap')
 library('RColorBrewer')
 
@@ -409,7 +415,8 @@ sampleDistMatrix <- as.matrix(sampleDists)
 
 colores <- colorRampPalette(rev(brewer.pal(9, "Blues")))(255)
 
-annotation_columns <- as.data.frame(colData(ddsMat)[, c("Group")])
+annotation_columns <- data.frame(Group = colData(ddsMat)[, c("Group")])
+rownames(annotation_columns) <- colnames(sampleDistMatrix)
 
 pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
@@ -431,7 +438,7 @@ En la gráfica de componentes principales parece que un 70% de la varianza está
 ### Identificación de genes diferencialmente expresados
 
 Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo de un factor con tres niveles, siendo esos niveles los grupos a los que está asignada cada muestra:  
-` unique(targets$Group)`
+`r unique(targets$Group)`
 
 ```{r differential expression analysis}
 # Remove large unnecesary objects from environment
@@ -490,7 +497,9 @@ head(resSig[order(resSig$log2FoldChange, decreasing = TRUE), ])
 ```
 
 ```{r store NITvsSFI results in csv file}
-write.csv(res, file = "results/res_NITvsSFI.csv")
+if (!(file.exists("results/res_NITvsSFI.csv"))){
+  write.csv(res, file = "results/res_NITvsSFI.csv")
+}
 ```
 
 
@@ -522,6 +531,26 @@ hist(res$pvalue[res$baseMean > 1], breaks = 0:20/20,
      main = "", xlab = "P valores no ajustados", ylab = "Frecuencia")
 ```
 
+### Agrupación jerárquica de los genes más variables
+
+```{r separar los genes mas variables}
+library('genefilter')
+load("intermediateData/vsd.RData")
+topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 20)
+```
+
+```{r draw a heatmap, fig.cap= 'Mapa de calor de los 20 genes con mayor variación entre muestras. Cada columna representa una muestra, y cada fila representa uno de los genes.'}
+library(pheatmap)
+mat <- assay(vsd)[topVarGenes, ]
+# Calculate the amount by which each gene deviates in a specific sample
+# from the gene average across the samples
+mat <- mat - rowMeans(mat)
+anno <- data.frame(Grupo = colData(vsd)[, c("Group")])
+rownames(anno) <- colnames(mat)
+pheatmap(mat, annotation_col = anno,
+         angle_col = 45)
+
+```
 
 <!-- Para cumplir con el objetivo del estudio, el interés se encuentra en averiguar qué genes presentan cambios significativos entre las muestras "Wash" y las muestras "Eluted". Y además, si esos cambios significativos se mantienen entre los grupos "Control" y "ASD". -->
 
