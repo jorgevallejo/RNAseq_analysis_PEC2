@@ -401,17 +401,21 @@ Mediante un mapa de calor podemos qué muestras se parecen más entre ellas. Esp
 sampleDists <- dist(t(assay(vsd)))
 ```
 
-```{r heatmap with pheatmap}
+```{r heatmap with pheatmap, eval = FALSE}
 library('pheatmap')
 library('RColorBrewer')
 
 sampleDistMatrix <- as.matrix(sampleDists)
 
-colors <- colorRampPalette(rev(brewer.pal(9, "Blues")))(255)
+colores <- colorRampPalette(rev(brewer.pal(9, "Blues")))(255)
+
+annotation_columns <- as.data.frame(colData(ddsMat)[, c("Group")])
+
 pheatmap(sampleDistMatrix,
          clustering_distance_rows = sampleDists,
          clustering_distance_cols = sampleDists,
-         col = colors)
+         col = colores,
+         annotation_row = annotation_columns)
 ```
 
 Curiosamente, las muestras del grupo experimental ELI se agrupan principalmente en _dos conjuntos diferentes_, mientras que las muestras de los grupos NIT y SFI forman una única agrupación.
@@ -485,6 +489,11 @@ Genes más significativos con la regulación positiva más acusada:
 head(resSig[order(resSig$log2FoldChange, decreasing = TRUE), ])
 ```
 
+```{r store NITvsSFI results in csv file}
+write.csv(res, file = "results/res_NITvsSFI.csv")
+```
+
+
 ## Gráficas de resultados
 
 ### Cuentas de genes concretos
@@ -505,6 +514,13 @@ ggplot(geneCounts, aes(x = Group, y = count)) +
   geom_line()
 ```
 
+### Histogram of unadjusted p values
+
+```{r histogram of unadjusted p values, fig.cap="Histograma de p-valores no ajustados de cada gen. El perfil esperado es el de un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades."}
+hist(res$pvalue[res$baseMean > 1], breaks = 0:20/20,
+     col = "grey50", border = "white",
+     main = "", xlab = "P valores no ajustados", ylab = "Frecuencia")
+```
 
 
 <!-- Para cumplir con el objetivo del estudio, el interés se encuentra en averiguar qué genes presentan cambios significativos entre las muestras "Wash" y las muestras "Eluted". Y además, si esos cambios significativos se mantienen entre los grupos "Control" y "ASD". -->
