@@ -552,6 +552,12 @@ pheatmap(mat, annotation_col = anno,
 
 ```
 
+Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo control (NIT), el otro todas las muestras infiltradas (SFI y ELI) sin que haya una diferencia clara entre ambos grupos de infiltradas.
+
+Lo genes representados en el mapa de calor, aquellos 20 que presentan mayor varianción intermuestral, parecen dividirse en dos grandes grupos.
+
+
+
 <!-- Para cumplir con el objetivo del estudio, el interés se encuentra en averiguar qué genes presentan cambios significativos entre las muestras "Wash" y las muestras "Eluted". Y además, si esos cambios significativos se mantienen entre los grupos "Control" y "ASD". -->
 
 <!-- Para replicar ese razonamiento, hemos organizado los siguientes contrastes: -->
@@ -577,62 +583,46 @@ fit.main <- eBayes(fit.main)
 
 ### Anotación de las listas de genes
 
-A continuación presentamos una muestra de las listas de genes diferencialmente expresados para cada comparación, incluyendo el símbolo y nombre de cada gen, ordenados por p-valor ajustado.
+En las listas que hemos generado los genes están identificados por un código Ensembl. Sin embargo, a nosotros humanos nos resulta más cómodo trabajar con los símbolos o nombres de cada gen. Es por eso que hemos procedido a anotar las listas para incluir el símbolo de cada gen y su código Entrez.
 
-```{r topTab lists WvsE.CTRL, eval = FALSE}
-topTab_WvsE.CTRL <- topTable(fit.main, number=nrow(fit.main), coef="WvsE.CTRL",
-                              adjust="fdr")
+```{r load annotation libraries}
+library('AnnotationDbi')
+library('org.Hs.eg.db')
 ```
 
-```{r topTab lists WvsE.ASD, eval=FALSE}
-topTab_WvsE.ASD <- topTable(fit.main, number=nrow(fit.main), coef="WvsE.ASD",
-                              adjust="fdr")
+```{r annotate res object}
+# Cut the version from the ensembl code
+# From https://www.biostars.org/p/178726/
+ensembl_codes <- gsub("\\..*", "", row.names(res))
+
+# Add symbol column
+res$symbol <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "SYMBOL",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add Entrez ID
+res$entrez <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "ENTREZID",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
 ```
 
-```{r topTab lists INT, eval=FALSE}
-topTab_INT <- topTable(fit.main, number=nrow(fit.main), coef="INT",
-                              adjust="fdr")
-```
+Ejemplo del listado de genes, ordenado por p-valor (decreciente), incluyendo el símbolo del gen:
 
-```{r anotar toptables, eval=FALSE}
-# Generate table from GPL with columns of interest
-geneAnots <- gpl_table[, c("ID", "Gene.Title", "Gene.Symbol", "Entrez.Gene")]
+```{r genes with symbol ordered by p-value}
+resOrdered <- res[order(res$padj),]
 
-anottopTap <- function(x){
-  annotated <- merge(geneAnots, x, by.x = "ID", by.y = 0)
-  # Sort by adjusted p.value
-  annotated <- annotated[order(annotated$adj.P.Val), ]
-  # Delete row names
-  rownames(annotated) <- NULL
-  return (annotated)
+# Store as a csv
+if(!(file.exists("results/resOrdered.csv"))){
+  write.csv(resOrdered, file="results/resOrdered.csv")
 }
 
-anotopTab_WvsE.CTRL <- anottopTap(topTab_WvsE.CTRL)
-anotopTab_WvsE.ASD <- anottopTap(topTab_WvsE.ASD)
-anotopTab_INT <- anottopTap(topTab_INT)
+head(resOrdered)
 ```
 
-```{r sample annotated WvsE.CTRL, eval=FALSE}
-anotopTab_WvsE.CTRL$adj.P.Val <- format(anotopTab_WvsE.CTRL$adj.P.Val, digits = 4)
-knitr::kable(anotopTab_WvsE.CTRL[1:6, c("Gene.Title", "Gene.Symbol", "logFC", "adj.P.Val")],
-     row.names = FALSE, scientific = TRUE,
-     caption = "Comparación 1 (WvsE.CTRL): Genes diferencialmente expresados con colas poli-A cortas (WASH) frente a colas poli-A largas (ELUTED) en sujetos control (CTRL).")
-write.csv2(anotopTab_WvsE.CTRL, file = "results/anotopTab_WvsE.CTRL.csv", row.names = FALSE)
-```
-
-
-```{r sample annotated WvsE.ASD, eval=FALSE}
-anotopTab_WvsE.ASD$adj.P.Val <- format(anotopTab_WvsE.ASD$adj.P.Val, digits = 4)
-knitr::kable(anotopTab_WvsE.ASD[1:6, c("Gene.Title", "Gene.Symbol", "logFC", "adj.P.Val")],
-     row.names = FALSE, caption = "Comparación 2 (WvsE.ASD): Genes diferencialmente expresados con colas poli-A cortas (WASH) frente a colas poli-A largas (ELUTED) en sujetos autistas (ASD).")
-write.csv2(anotopTab_WvsE.ASD, file = "results/anotopTab_WvsE.ASD.csv", row.names = FALSE)
-```
-
-```{r sample annotated INT, eval=FALSE}
-knitr::kable(anotopTab_INT[1:6, c("Gene.Title", "Gene.Symbol", "logFC", "adj.P.Val")],
-     row.names = FALSE, digits = 4, scientific = TRUE,
-     caption = " Comparación 3 (INT): Genes que cambian su expresión de forma significativa por interacción entre la condición del sujeto (CONTROL, ASD) y el material examinado (WASH, ELUTED).")
-```
 
 #### Visualización (volcanoplots)
 
