@@ -150,7 +150,9 @@ shortnames <- merge(longnames,
 colnames(counts_subset) <- shortnames$ShortName
 ```
 
-```{r order counts_subset rows by Group an sample name}
+```{r order counts_subset rows by Group and sample name, eval= FALSE}
+# Esto lo dejo sin evaluar porque creo que no es necesario
+
 counts_subset <- counts_subset[, order(
   substr(colnames(counts_subset), 7, 9),
   colnames(counts_subset))]
