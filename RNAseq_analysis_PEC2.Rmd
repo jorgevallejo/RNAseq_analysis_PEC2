@@ -50,14 +50,20 @@ lapply(directories, function(x){
 
 ```{r delete results files, eval= FALSE}
 # Run this chunk ONLY if you want to re-do
-# the complete the report FROM THE ORIGINAL DATAS.
+# the complete the report FROM THE ORIGINAL DATA.
 # Remember that the .RData files are there to
 # avoid unnecesarily redoing of long data processing.
 
-file.remove(c("results",
-              "intermediateData"))
+directories <- c("results/", "intermediateData/")
 
-
+file.remove(
+  # Create a character vector of relative paths
+  # to all files in the variable directories
+  list.files(path = directories,
+           all.files = TRUE,
+           full.names = TRUE,
+           recursive = TRUE)
+)
 ```
 
 ```{r libraries, include=FALSE}
