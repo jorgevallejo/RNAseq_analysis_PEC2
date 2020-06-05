@@ -117,6 +117,9 @@ targets_ELI <- targets[targets$Group == "ELI", ]
 targets_ELI <- targets_ELI[sample(nrow(targets_ELI), 10), ]
 
 targets_sampled <- rbind(targets_NIT, targets_SFI, targets_ELI)
+
+# Remove samples that we are not going to use any more
+rm(list = c("targets_ELI", "targets_NIT", "targets_SFI"))
 ```
 
 ```{r subset counts data frame}
