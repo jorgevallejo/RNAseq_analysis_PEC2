@@ -585,6 +585,8 @@ fit.main <- eBayes(fit.main)
 
 En las listas que hemos generado los genes están identificados por un código Ensembl. Sin embargo, a nosotros humanos nos resulta más cómodo trabajar con los símbolos o nombres de cada gen. Es por eso que hemos procedido a anotar las listas para incluir el símbolo de cada gen y su código Entrez.
 
+No debemos de dejar de tener en cuenta, sin embargo, que las bases de datos Ensembl y Entrez utilizan criterios diferentes para definir qué es un gen, y tienen requisitos diferentes para incluir un gen en la base de datos. Esto tiene como consecuencia que muchos de los códigos de Ensembl no tengan su equivalente en códigos Entrez. Estos últimos, sin embargo, serán necesarios para el análisis de significación biológica. Así pues, como parte del análisis de expresión diferencial hemos producido dos listas; una con los códigos Ensembl, y otra con los códigos Entrez que no coincide exactamente con la primera.
+
 ```{r load annotation libraries}
 library('AnnotationDbi')
 library('org.Hs.eg.db')
@@ -622,6 +624,29 @@ if(!(file.exists("results/resOrdered.csv"))){
 
 head(resOrdered)
 ```
+
+### Efectos de lote ocultos
+
+```{r}
+library('sva')
+
+dat <- counts(ddsMat, normalized = TRUE)
+idx <- rowMeans(dat) > 1
+dat <- dat[idx, ]
+mod <- model.matrix( ~ Group, colData(ddsMat))
+mod0 <- model.matrix( ~ 1, colData(ddsMat))
+svseq <- svaseq(dat, mod, mod0, n.sv = 2)
+```
+
+I will try to see if occult batch effect is related with sex:
+```{r}
+par(mfrow=c(2,1), mar=c(3,5,3,1))
+for (i in 1:2) {
+  stripchart(svseq$sv[, i] ~ ddsMat$sex, vertical = TRUE, main = paste0("SV", i))
+  abline(h=0)
+}
+```
+
 
 
 #### Visualización (volcanoplots)
