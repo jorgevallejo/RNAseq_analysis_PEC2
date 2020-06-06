@@ -153,13 +153,16 @@ colnames(counts_subset) <- shortnames$ShortName
 ```{r order counts_subset rows by Group and sample name, eval= FALSE}
 # Esto lo dejo sin evaluar porque creo que no es necesario
 
-counts_subset <- counts_subset[, order(
-  substr(colnames(counts_subset), 7, 9),
-  colnames(counts_subset))]
+# counts_subset <- counts_subset[, order(
+#   substr(colnames(counts_subset), 7, 9),
+#   colnames(counts_subset))]
 
 # Order sample shortnames by group and name
-shortnames_ordered <- shortnames[order(substr(shortnames$ShortName, 7, 9),
-                                         shortnames$ShortName), 2]
+# shortnames_ordered <- shortnames[order(substr(shortnames$ShortName, 7, 9),
+#                                          shortnames$ShortName), 2]
+
+# Put targets rows in the same order than counts columns
+targets_sampled <- targets_sampled[order(targets_sampled$ShortName), ]
 ```
 
 ```{r construct summarizedexperiment object}
@@ -167,6 +170,44 @@ library('DESeq2')
 ddsMat <- DESeqDataSetFromMatrix(countData = counts_subset,
                                  colData = targets_sampled,
                                  design =  ~ Group)
+```
+
+```{r estimate normalization factors}
+
+if (file.exists("intermediateData/ddsMat_sizeFactors.RData")){
+  load("intermediateData/ddsMat_sizeFactors.RData")
+}else{
+  ddsMat <- estimateSizeFactors(ddsMat)
+  save(ddsMat, file = "intermediateData/ddsMat_sizeFactors.RData")
+}
+```
+
+```{r inspect size factors}
+sizeFactors(ddsMat)
+```
+
+```{r inspect sample relationships}
+# Estimate dispersions
+if (file.exists("intermediateData/ddsMatB.RData")){
+  load("intermediateData/ddsMatB.RData")
+}else{
+  ddsMatB <- estimateDispersions(ddsMat)
+  save(ddsMatB, file = "intermediateData/ddsMatB.RData")
+}
+
+# Variance stabilizing transformation
+if (file.exists("intermediateData/vsd.RData")){
+  load("intermediateData/vsd.RData")
+}else{
+  vsd <- varianceStabilizingTransformation(ddsMatB)
+  save(vsd, file = "intermediateData/vsd.RData")
+}
+```
+
+```{r inspect PCA plot, fig.cap= 'Análisis de componentes principales. El 70% de la variabilidad parece explicado por el grupo al que pertenece la muestra, ya que vemos una clara separación en el eje horizontal del grupo ELI frente a los otros dos grupos (SFI y NIT), que aparecen entremezclados.'}
+# Inspect principal component analysis plot
+vsd_PCA_plot <- plotPCA(vsd, intgroup = "Group")
+vsd_PCA_plot
 ```
 
 
