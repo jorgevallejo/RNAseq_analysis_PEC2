@@ -101,25 +101,39 @@ str(counts)
 <!-- La primera variable es el código del gen? -->
 <!-- Cada variable es una muestra. -->
 
-```{r take samples from each group}
+```{r take samples from each group stratified by sex}
 # Check if there are duplicates of Sample_Name
 # sum(duplicated(targest$Sample_Name))
 
 # Take 10 samples from each group at random
 set.seed(50110528)
-targets_NIT <- targets[targets$Group == "NIT", ]
-targets_NIT <- targets_NIT[sample(nrow(targets_NIT), 10), ]
-
-targets_SFI <- targets[targets$Group == "SFI", ]
-targets_SFI <- targets_SFI[sample(nrow(targets_SFI), 10), ]
-
-targets_ELI <- targets[targets$Group == "ELI", ]
-targets_ELI <- targets_ELI[sample(nrow(targets_ELI), 10), ]
-
-targets_sampled <- rbind(targets_NIT, targets_SFI, targets_ELI)
+# targets_NIT <- targets[targets$Group == "NIT", ]
+# targets_NIT <- targets_NIT[sample(nrow(targets_NIT), 10), ]
+# 
+# targets_SFI <- targets[targets$Group == "SFI", ]
+# targets_SFI <- targets_SFI[sample(nrow(targets_SFI), 10), ]
+# 
+# targets_ELI <- targets[targets$Group == "ELI", ]
+# targets_ELI <- targets_ELI[sample(nrow(targets_ELI), 10), ]
+# 
+# targets_sampled <- rbind(targets_NIT, targets_SFI, targets_ELI)
 
 # Remove samples that we are not going to use any more
-rm(list = c("targets_ELI", "targets_NIT", "targets_SFI"))
+# rm(list = c("targets_ELI", "targets_NIT", "targets_SFI"))
+groups <- c("NIT", "SFI", "ELI")
+sampler <- function (targets, groups){
+  targets_sampled <- NULL
+  for (group in groups){
+    targets_male <- targets[targets$Group == group &
+                            targets$sex == "male", ]
+    targets_female <- targets[targets$Group == group &
+                            targets$sex == "female", ]
+    targets_sampled <- rbind(targets_sampled,
+                       targets_male[sample(nrow(targets_male), 5), ],
+                       targets_female[sample(nrow(targets_female), 5), ])
+}
+  return (targets_sampled)
+}
 ```
 
 ```{r subset counts data frame}
@@ -209,6 +223,11 @@ if (file.exists("intermediateData/vsd.RData")){
 vsd_PCA_plot <- plotPCA(vsd, intgroup = "Group")
 vsd_PCA_plot
 ```
+
+```{r inpect estimated dispersions, fig.cap='Gráfica de dispersión frente a la media de las cuentas normalizadas.'}
+plotDispEsts(ddsMatB)
+```
+
 
 
 \newpage
@@ -505,8 +524,11 @@ if(file.exists("intermediateData/ddsMat_dea.RData")){
 }
 ```
 
+
+
+
 ```{r leg2 fold change NIT vs SFI}
-res <- results(ddsMat, contrast = c("Group", "NIT", "SFI"))
+res <- results(ddsMat, contrast = c("Group", "NIT", "ELI"))
 res
 ```
 
@@ -517,6 +539,11 @@ mcols(res, use.names = TRUE)
 ```{r summarize the results}
 summary(res)
 ```
+
+```{r display log fold changes versus expression strength, fig.cap='Gráfica mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1'}
+plotMA(res)
+```
+
 
 Características más estrictas para definir qué grupo de genes se consideran significativos:  
 - Disminuir el umbral de la tasa de descubrimiento falsa:
@@ -578,7 +605,7 @@ ggplot(geneCounts, aes(x = Group, y = count)) +
 ### Histogram of unadjusted p values
 
 ```{r histogram of unadjusted p values, fig.cap="Histograma de p-valores no ajustados de cada gen. El perfil esperado es el de un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades."}
-hist(res$pvalue[res$baseMean > 1], breaks = 0:20/20,
+hist(res$pvalue[res$baseMean > 1], breaks = 100,
      col = "grey50", border = "white",
      main = "", xlab = "P valores no ajustados", ylab = "Frecuencia")
 ```
