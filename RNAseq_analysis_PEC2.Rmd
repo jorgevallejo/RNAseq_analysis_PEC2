@@ -50,14 +50,20 @@ lapply(directories, function(x){
 
 ```{r delete results files, eval= FALSE}
 # Run this chunk ONLY if you want to re-do
-# the complete the report FROM THE ORIGINAL DATAS.
+# the complete the report FROM THE ORIGINAL DATA.
 # Remember that the .RData files are there to
 # avoid unnecesarily redoing of long data processing.
 
-file.remove(c("results",
-              "intermediateData"))
+directories <- c("results/", "intermediateData/")
 
-
+file.remove(
+  # Create a character vector of relative paths
+  # to all files in the variable directories
+  list.files(path = directories,
+           all.files = TRUE,
+           full.names = TRUE,
+           recursive = TRUE)
+)
 ```
 
 ```{r libraries, include=FALSE}
@@ -95,22 +101,44 @@ str(counts)
 <!-- La primera variable es el código del gen? -->
 <!-- Cada variable es una muestra. -->
 
-```{r take samples from each group}
+```{r take samples from each group stratified by sex}
 # Check if there are duplicates of Sample_Name
 # sum(duplicated(targest$Sample_Name))
 
 # Take 10 samples from each group at random
 set.seed(50110528)
-targets_NIT <- targets[targets$Group == "NIT", ]
-targets_NIT <- targets_NIT[sample(nrow(targets_NIT), 10), ]
+# targets_NIT <- targets[targets$Group == "NIT", ]
+# targets_NIT <- targets_NIT[sample(nrow(targets_NIT), 10), ]
+# 
+# targets_SFI <- targets[targets$Group == "SFI", ]
+# targets_SFI <- targets_SFI[sample(nrow(targets_SFI), 10), ]
+# 
+# targets_ELI <- targets[targets$Group == "ELI", ]
+# targets_ELI <- targets_ELI[sample(nrow(targets_ELI), 10), ]
+# 
+# targets_sampled <- rbind(targets_NIT, targets_SFI, targets_ELI)
 
-targets_SFI <- targets[targets$Group == "SFI", ]
-targets_SFI <- targets_SFI[sample(nrow(targets_SFI), 10), ]
+# Remove samples that we are not going to use any more
+# rm(list = c("targets_ELI", "targets_NIT", "targets_SFI"))
+groups <- c("NIT", "SFI", "ELI")
 
-targets_ELI <- targets[targets$Group == "ELI", ]
-targets_ELI <- targets_ELI[sample(nrow(targets_ELI), 10), ]
+# Function for the stratified sampling
+sampler <- function (targets, groups){
+  targets_sampled <- NULL
+  for (group in groups){
+    targets_male <- targets[targets$Group == group &
+                            targets$sex == "male", ]
+    targets_female <- targets[targets$Group == group &
+                            targets$sex == "female", ]
+    targets_sampled <- rbind(targets_sampled,
+                       targets_male[sample(nrow(targets_male), 5), ],
+                       targets_female[sample(nrow(targets_female), 5), ])
+}
+  return (targets_sampled)
+}
 
-targets_sampled <- rbind(targets_NIT, targets_SFI, targets_ELI)
+# Take the sample
+targets_sampled <- sampler(targets, groups)
 ```
 
 ```{r subset counts data frame}
@@ -122,8 +150,38 @@ sample_names <- c("X", sample_names)
 
 #Subset counts data frame with sample names
 counts_subset <- counts[, names(counts) %in% sample_names]
+# Make variable X into rownames
+rownames(counts_subset) <- counts_subset$X
+counts_subset <- counts_subset[-1]
+
+# Change colnames from sample name to short name
+## Subset to columns Sample_Name and ShortName
+targets_shortname <- targets[, c(3, 9)]
+## Change Sample_Name format
+targets_shortname$Sample_Name <- gsub("-", ".", targets_shortname$Sample_Name)
+## Merge
+longnames <- data.frame(colnames(counts_subset))
+shortnames <- merge(longnames,
+                    targets_shortname,
+                    by.x = colnames(longnames),
+                    by.y="Sample_Name")
+# Change counts_subset colnames for shortnames
+colnames(counts_subset) <- shortnames$ShortName
 ```
 
+```{r order counts_subset rows by Group and sample name}
+# This is necessary for the samples to appear ordered by experimental
+# group in the box plot
+
+counts_subset <- counts_subset[, order(
+  substr(colnames(counts_subset), 7, 9),
+  colnames(counts_subset))]
+
+# Put targets rows in the same order than counts columns
+# This is necessary for creating the DESeqDataSet object
+targets_sampled <- targets_sampled[order(targets_sampled$Group,
+                                         targets_sampled$ShortName), ]
+```
 
 \newpage
 # Sumario
@@ -163,138 +221,483 @@ Los pasos seguidos para realizar el presente análisis han sido los siguientes:
 
 Los diferentes archivos con los datos en bruto han sido manipulados utilizando R para realizar los controles de calidad y los análisis propiamente dichos. El código completo usado puede consultarse en el apéndice A.
 
-### Control de calidad de los datos en bruto
+### Control de calidad de los datos
 Con el control de calidad pretendemos averiguar si los datos de alguna de las muestras presentan defectos o sesgos que desaconsejen usarlos, antes de continuar con el análisis.
 
 En este caso hemos usado examinado los datos de expresión mediante diferenes representaciones gráficas, en busca de anomalías.
 
+#### Distribución de los datos en bruto y normalización
+
+```{r histogram raw counts}
+library(ggplot2)
+library(gridExtra)
+histo_counts <- ggplot(counts_subset,
+       aes(x = counts_subset[, 1])) +
+  geom_histogram(fill = "#525252", binwidth = 2000) + 
+  labs(x = "Cuentas", y = "Frecuencia",
+       title = paste0("Muestra ", names(counts_subset)[1])) +
+  scale_y_log10() + 
+  coord_cartesian(xlim = c(0, 300000))
+```
+
+Como la distribución de las cuentas presenta una alta asimetría, hemos transformado los datos de cuentas en pseudocuentas (log_2(cuentas + 1)) para aproximar la distribución a la curva normal. Esta transformación ayudará a la visualización de los datos.
+
+```{r transform count data to log2}
+pseudoCounts <- log2(counts_subset + 1)
+```
+
+```{r histogram of pseudocounts}
+histo_pseudocounts <- ggplot(pseudoCounts,
+       aes(x = pseudoCounts[, 1])) +
+  geom_histogram(colour = "white", fill = "#525252", binwidth = 0.5) + 
+  labs(x = "Pseudocuentas", y = "Frecuencia",
+       title = paste0("Muestra ", names(counts_subset)[1]))
+```
+
+```{r print histocounts and histopseudocounts, fig.cap='(izq.) Las cuentas de los genes en la muestra presentan una distribución fuertemente asimétrica hacia números bajos. La transformación en pseudocuentas (der.) produce un perfil de frecuencias más parecido a la distribución normal.'}
+grid.arrange(histo_counts, histo_pseudocounts, ncol = 2)
+
+# Remove big objects from environment
+rm(list = c("histo_counts", "histo_pseudocounts"))
+```
 
 
-### Normalización de los datos
+#### Diagramas de cajas
+Con los diagramas de cajas podemos observar y comparar la distribución de las pseudocuentas en las diferentes muestras:
 
+```{r boxplots, fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
+library('reshape')
 
-### Control de calidad sobre datos normalizados
+if(file.exists("intermediateData/pseudoCounts_melted.RData")){
+  load("intermediateData/pseudoCounts_melted.RData")
+}else{
+  pseudoCounts_melted <- melt(pseudoCounts, variable_name = "Muestras")
+  save(pseudoCounts_melted, file = "intermediateData/pseudoCounts_melted.RData")
+}
+
+# Add experimental group to melted dataframe
+pseudoCounts_melted <- data.frame(pseudoCounts_melted, 
+                                  Grupo = substr(pseudoCounts_melted$Muestras, 7, 9))
+
+# Draw boxplot of pseudocounts distribution
+ggplot(pseudoCounts_melted, aes(x = Muestras, y = value, fill = Grupo)) +
+  geom_boxplot() +
+  xlab("Muestras") +
+  ylab(expression(log[2](count + 1))) +
+  scale_fill_manual(values = c("red", "blue", "green")) +
+  scale_x_discrete(limits = targets_sampled$ShortName) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = rel(0.8)))
+
+# ggsave(filename = "pseudoCounts_boxplots.png")
+```
+
+#### Histogramas
+
+Los histogramas nos ofrecen una perspectiva diferente sobre la distribución de las pseudocuentas, más detallada que los diagramas de cajas.
+
+```{r histograms and density plots, fig.cap='Histogramas suavizados de densidades de pseudocuentas en cada muestra, separados por grupo experimental.'}
+ggplot(pseudoCounts_melted, aes(x = value, colour = Muestras, fill = Muestras)) +
+  ylim(c(0, 0.25)) +
+  geom_density(alpha = 0.2, size = 0.25) +
+  facet_wrap(~ Grupo) +
+  theme(legend.position = "none") +
+  xlab(expression(log[2](count + 1)))
+```
+
+En general, el perfil de los histogramas es muy parecido para todas las muestras, y entre los diferentes grupos experimentales.
+
+#### Mapa de calor
+Los mapas de calor ayudan a explorar los parecidos y diferencias entre muestras. Mediante colores que representan las distancias entre muestras, y agrupando jerárquicamente muestras según su similaridad.
+
+```{r heatmap of sample-to-sample distance}
+mat.dist <- as.matrix(dist(t(pseudoCounts)))
+mat.dist <- mat.dist/max(mat.dist)
+
+library('RColorBrewer')
+hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(255)
+# library('mixOmics')
+# cim(mat.dist, color = rev(hmcol), symkey = FALSE, margin = c(9, 9),
+#     save='jpeg')
+# library('OpenImageR')
+# imageShow("cim_mat_dist.jpeg")
+# heatmap(mat.dist, symm = FALSE,
+#         cexRow = 0.8, cexCol = 0.8,
+#         col = rev(hmcol))
+```
+```{r heatmap 2, fig.cap='Mapa de calor de la distancia relativa entre muestras. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
+library(gplots)
+
+heatmap.2(mat.dist,
+          Rowv = TRUE,
+          Colv = TRUE,
+          dendrogram = "column",
+          main = "",
+          scale = "none",
+          col = rev(hmcol),
+          sepcolor = "white",
+          sepwidth = c(0.05, 0.05),
+          cexRow = 0.5,
+          cexCol = 0.5,
+          key = TRUE,
+          keysize = 1.5,
+          density.info = "none",
+          tracecol = NULL,
+          srtCol = 30,
+          ColSideColors = c(
+            rep("red", 10), # ELI
+             rep("green", 10), # NIT
+             rep("blue", 10) # SFI
+             ),
+          colsep = c(4),
+          key.title = NA,
+          key.xlab = 'Distancia relativa'
+          )
+
+# Legend
+legend("left", # Position of the legend in the graph
+       legend = c("ELI", "NIT", "SFI"),
+       fill = c("red", "green", "blue"), # Colors of the boxes
+       border = NA, # Do not draw a box around the colors
+       bty = 'n', # Do not draw a box around the legend
+       cex = 0.75) # Size of the characters
+```
+
+Por lo que podemos ver en el mapa de calor, la mayor parte de las muestras del grupo ELI (infiltraciones amplias) se agrupan entre ellas (aunque en dos grupos diferentes), mientras que el resto de agrupaciones son mezclas de muestras de los grupos SFI (infiltraciones pequeñas) y NIT (sin infiltraciones).
+
+#### Análisis de componentes principales de las muestras
+
+Éste tipo de gráfica se puede usar para reconocer las características clave en sets de datos multidimensionales. Esto es, aquellas características que explican la mayor parte de la variabilidad en los datos.
+
+Al aplicar el análisis sobre nuestros datos, esperamos que las muestras se agrupen por grupo experimental y, probablemente, por sexo.
+
+```{r plot PCA, fig.cap='Análisis de componentes principales. PC1: Fuente principal de variabilidad entre muestras. Parece corresponder al grupo experimental. PC2: Segunda mayor fuente de variabilidad entre muestras. Separa claramente las muestras de hembras y varones.'}
+library('DESeq2')
+library('Biobase')
+
+# Link ordered shortnames with experimental group
+targets_sampled_ordered <- targets_sampled[order(targets_sampled$Group,
+                        targets_sampled$ShortName), ]
+
+annot <- AnnotatedDataFrame(
+  data = data.frame(Group = targets_sampled_ordered$Group,
+                    sex = targets_sampled_ordered$sex,
+                    row.names=colnames(pseudoCounts)))
+
+expSet <- new("ExpressionSet",
+              exprs = as.matrix(pseudoCounts),
+              phenoData = annot)
+
+DESeq::plotPCA(expSet, intgroup =c("Group", "sex"))
+```
+
+En el resultado de la gráfica vemos que la separación entre grupos no es clara. Las muestras del grupo ELI en su mayoría se reúnen a la izquierda del gráfico, las muestras NIT a la derecha, y las muestras SFI se entremezclan con ambos grupos definiendo una posición más o menos central. La separación entre sexos sin embargo, es clara, con las muestras procedentes de varones en la zona superior y las de hembras en la inferior.
+
 
 ### Filtraje no específico
 
+Una primera medida para disminuir el ruido estadístico, y agilizar la velocidad de los cálculos, consiste en eliminar todos aquellos genes con ninguna o muy poca expresión. Podemos eliminarlos con relativa seguridad porque, si no se expresan en las muestras de ninguno de los dos grupos, tampoco nos están ofreciendo ninguna información respecto a expresión diferencial.
+
+Eliminamos del dataset aquellos genes con menos de dos cuentas en total (teniendo en cuenta todas las muestras).
+
+```{r Total de genes en el dataset}
+genes_total <- nrow(counts_subset)
+```
+
+```{r Genes pre-filtrados}
+counts_subset <- counts_subset[rowSums(counts_subset) > 1, ]
+genes_postfilter <- nrow(counts_subset)
+```
+Total inicial de genes en el set de datos: `r format(genes_total, big.mark = " ")` genes.  
+Total genes después de filtrar: `r format(genes_postfilter, big.mark = " ")` genes.  
+Genes filtrados:`r  format(genes_total - genes_postfilter, big.mark = " ")`
+
+```{r remove unnecesary varibles from environment}
+rm(list = c("genes_total", "genes_postfilter"))
+```
+
+
+### Transformación de los datos: normalización
+
+```{r construct DESeqDataSet object, eval}
+# After pre-filterning and before normalization and stabilizing variance
+# it is time to generate the DESeqDataSet object
+library('DESeq2')
+ddsMat <- DESeqDataSetFromMatrix(countData = counts_subset,
+                                 colData = targets_sampled,
+                                 # Group is last because in the studied factor
+                                 design =  ~ sex + Group)
+```
+Las estrategias de normalización sirven para disminuir diferencias entre muestras provocadas por sesgos técnicos. Uno de los sesgos más comunes en RNA-seq son las diferencias en el número de lecturas en cada muestra, y para corregirlo hemos elegido el método conocido como _expressión de logaritmo relativo_ (RLE por sus siglas en inglés).
+
+```{r estimate normalization factors}
+
+if (file.exists("intermediateData/ddsMat_sizeFactors.RData")){
+  load("intermediateData/ddsMat_sizeFactors.RData")
+}else{
+  ddsMat <- estimateSizeFactors(ddsMat)
+  save(ddsMat, file = "intermediateData/ddsMat_sizeFactors.RData")
+}
+```
+
+```{r inspect size factors, eval=FALSE}
+kable(sizeFactors(ddsMat))
+```
+
+### Transformación de los datos: estabilización de la varianza
+
+Por lo general, el análisis de datos multidimensional es muy sensible a cambios en la varianza. Por eso hemos transformado los datos para que la medias de cuentas de los diferentes genes presenten aproximadamente la misma varianza.
+
+Debido a que el tamaño del dataset empieza a entrar en un rango mediano (30 muestras), hemos utilizado el método de transformación estabilizadora de la varianza (VST).
+
+```{r transformación estabilizadora de la varianza}
+if(file.exists("intermediateData/vsd.RData")){
+  load("intermediateData/vsd.RData")
+}else{
+  vsd <- vst(ddsMat, blind = FALSE)
+  save(vsd, file = "intermediateData/vsd.RData")
+}
+
+# assay(vsd)[1:3, 1:3] # check assay data
+```
+
+```{r check colData, eval=FALSE}
+colData(vsd)
+```
+
+```{r check effect of transformation}
+library('dplyr')
+
+df <- bind_rows(
+  as_data_frame(log2(counts(ddsMat, normalized = TRUE)[, 1:2]+1)) %>%
+    mutate(transformation = "log2(x + 1)"),
+  as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst")
+)
+```
+```{r variabilidad expresion en dos muestras, fig.cap='La mayor variabilidad en la expresión génica se encuentra en aquellos genes con menos cuentas. La transformación estabilizadora de varianza (VST) elimina dicha variabilidad.'}
+library('ggplot2')
+colnames(df)[1:2] <- c("muestra_1", "muestra_2")
+
+ggplot(df, aes(x= muestra_1, y = muestra_2)) + geom_hex(bins = 80) +
+  coord_fixed() + facet_grid(. ~ transformation)
+```
+
+### Distancia entre muestras
+
+Con los datos transformados (normalización y estabilización de varianza), volvemos a examinar gráficamente la relación entre muestras.
+
+
+#### Mapa de calor
+
+Mediante un mapa de calor podemos qué muestras se parecen más entre ellas. Esperamos que muestras del mismo grupo experimental se agrupen entre ellas.
+
+```{r heatmap of sample-to-sample distance with transformed data}
+# Calculate distance matrix
+mat.dist <- as.matrix(dist(t(assay(vsd))))
+# Make distances relative
+mat.dist <- mat.dist/max(mat.dist)
+# Color palette for distances
+library('RColorBrewer')
+hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(255)
+```
+```{r draw heatmap transformed data, fig.cap='Mapa de calor de la distancia relativa entre muestras, a partir de datos transformados. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
+
+heatmap.2(mat.dist,
+          Rowv = TRUE,
+          Colv = TRUE,
+          dendrogram = "column",
+          main = "",
+          scale = "none",
+          col = rev(hmcol),
+          sepcolor = "white",
+          sepwidth = c(0.05, 0.05),
+          cexRow = 0.5,
+          cexCol = 0.5,
+          key = TRUE,
+          keysize = 1.5,
+          density.info = "none",
+          tracecol = NULL,
+          srtCol = 30,
+          ColSideColors = c(
+            rep("red", 10), # ELI
+             rep("green", 10), # NIT
+             rep("blue", 10) # SFI
+             ),
+          colsep = c(2, 11), # Columns after which introduce breaks
+          key.title = NA,
+          key.xlab = 'Distancia relativa'
+          )
+
+# Legend
+legend("left", # Position of the legend in the graph
+       legend = c("ELI", "NIT", "SFI"),
+       fill = c("red", "green", "blue"), # Colors of the boxes
+       border = NA, # Do not draw a box around the colors
+       bty = 'n', # Do not draw a box around the legend
+       cex = 0.75) # Size of the characters
+```
+
+En este nuevo mapa de calor de distancia entre muestras, con datos ya transformados mediante normalización y estabilización de la varianza, vemos un panorama similar el del mapa anterior.
+La mayor parte de las muestras del grupo ELI (infiltraciones amplias) se reúnen en dos grupos diferentes, mientras que el resto de agrupaciones son mezclas de muestras de los grupos SFI (infiltraciones pequeñas) y NIT (sin infiltraciones).
+
+### Análisis de componentes principales
+
+```{r PCA plot con datos VST, fig.cap='Gráfica de análisis de componentes principales. Cada marca representa una muestra, codificada según el grupo experimental al que pertence (color) y el sexo (forma).'}
+# DESeq2::plotPCA(vsd, intgroup = c("Group", "sex"))
+pcaData <- plotPCA(vsd, intgroup=c("Group", "sex"), returnData=TRUE)
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+ggplot(pcaData, aes(PC1, PC2, color=Group, shape=sex)) +
+  geom_point(size=3) +
+  xlab(paste0("PC1: ",percentVar[1],"% varianza")) +
+  ylab(paste0("PC2: ",percentVar[2],"% varianza")) + 
+  coord_fixed()
+```
+
+Al igual que observamos con los datos sin transformar, la mayor parte de la varianza parece deberse al grupo experimental, con las muestras del grupo ELI en su mayoría reúnidas a la izquierda del gráfico, las muestras NIT a la derecha, y las muestras SFI entremezcladas con ambos grupos formando una suerte de puente. La aportación a la varianza por sexos sigue siendo clara, con las muestras procedentes de varones en la zona superior y las de hembras en la inferior.
+
 ### Identificación de genes diferencialmente expresados
 
-Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo de un factor con seis niveles, siendo esos niveles los grupos a los que está asignada cada muestra:  
-` unique(targets$Grupo)`
+Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo de un factor con tres niveles, siendo esos niveles los grupos a los que está asignada cada muestra:  
+`r unique(targets$Group)`
 
-```{r matriz de diseño, eval = FALSE}
-library(limma)
-designMat <- model.matrix(~0+targets$Grupo)
-colnames(designMat) <- levels(targets$Grupo)
-rownames(designMat) <- targets$Abreviado
+```{r differential expression analysis}
+# Remove large unnecesary objects from environment
+rm(vsd)
+
+# Differential expression analysis parallelized
+if(file.exists("intermediateData/ddsMat_dea.RData")){
+  load("intermediateData/ddsMat_dea.RData")
+}else{
+  ddsMat <- DESeq(ddsMat, parallel = TRUE)
+  save(ddsMat, file="intermediateData/ddsMat_dea.RData")
+}
 ```
 
-<!-- Para cumplir con el objetivo del estudio, el interés se encuentra en averiguar qué genes presentan cambios significativos entre las muestras "Wash" y las muestras "Eluted". Y además, si esos cambios significativos se mantienen entre los grupos "Control" y "ASD". -->
-
-<!-- Para replicar ese razonamiento, hemos organizado los siguientes contrastes: -->
-
-<!-- WASH vs ELUTED en sujetos CONTROL   -->
-<!-- WASH vs ELUTED en sujetos ASD -->
-
-<!-- También podría valer la pena comprobar si hay interacción entre condición y material. -->
-
-```{r matriz de contrastes, eval = FALSE}
-cont.matrix <- makeContrasts(
-  WvsE.CTRL = CTRL.WASH - CTRL.ELUTED,
-  WvsE.ASD = ASD.WASH - ASD.ELUTED,
-  INT = (CTRL.WASH - CTRL.ELUTED) - (ASD.WASH - ASD.ELUTED),
-  levels = designMat)
+```{r leg2 fold change NIT vs SFI}
+res_NITvSFI <- results(ddsMat, 
+               contrast = c("Group", "NIT", "SFI")) # NIT is numerator in fold change
+# res_NITvSFI
 ```
 
-```{r estimacion del modelo, eval = FALSE}
-fit <- lmFit(eset_filtered, designMat)
-fit.main <- contrasts.fit(fit, cont.matrix)
-fit.main <- eBayes(fit.main)
+```{r meaning of the columns, eval=FALSE}
+mcols(res, use.names = TRUE)
 ```
+
+```{r summarize the results}
+summary(res_NITvSFI)
+```
+
+```{r display log fold changes versus expression strength, fig.cap='Gráfica mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1'}
+plotMA(res_NITvSFI)
+```
+
+Si consideramos aceptable una fracción de falsos positivos del 10%, podemos considerar como significativos todos aquellos genes con un p-valor ajustado por debajo de 0.1:
+```{r genes con p valor ajustado menor de 0.1}
+sum(res_NITvSFI$padj < 0.1, na.rm=TRUE)
+```
+
+De la tabla de resultados, seleccionamos sólo esos genes y los ordenamos por la estimación del log2 fold change para recoger los genes más significativos con la regulación negativa más acusada:
+
+```{r strongest down-regulation}
+resSig <- subset(res_NITvSFI, padj < 0.1)
+head(resSig[order(resSig$log2FoldChange), ])
+```
+
+Genes más significativos con la regulación positiva más acusada:
+```{r strongest up-regulation}
+head(resSig[order(resSig$log2FoldChange, decreasing = TRUE), ])
+```
+
+```{r store NITvsSFI results in csv file}
+if (!(file.exists("results/res_NITvsSFI.csv"))){
+  write.csv(res, file = "results/res_NITvsSFI.csv")
+}
+```
+
+La lista completa de genes con expresión diferencial entre los grupos NIT y SFI puede descargarse como un archivo en formato CSV XXXXdesde este enlaceXXXX.
+
+## Gráficas de resultados
+
+
+### Histograma de p-valores no ajustados
+
+```{r histogram of unadjusted p values, fig.cap="Histograma de p-valores no ajustados de cada gen. El perfil esperado es el de un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades."}
+hist(res_NITvSFI$pvalue[res_NITvSFI$baseMean > 1], breaks = 100,
+     col = "grey50", border = "white",
+     main = "", xlab = "P valores no ajustados", ylab = "Frecuencia")
+```
+
+### Agrupación jerárquica de los genes más variables
+
+```{r separar los genes mas variables}
+library('genefilter')
+load("intermediateData/vsd.RData")
+topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 20)
+```
+
+```{r draw a heatmap, fig.cap= 'Mapa de calor de los 20 genes con mayor variación entre muestras. Cada columna representa una muestra, y cada fila representa uno de los genes.'}
+library(pheatmap)
+mat <- assay(vsd)[topVarGenes, ]
+# Calculate the amount by which each gene deviates in a specific sample
+# from the gene average across the samples
+mat <- mat - rowMeans(mat)
+anno <- data.frame(Grupo = colData(vsd)[, c("Group")])
+rownames(anno) <- colnames(mat)
+pheatmap(mat, annotation_col = anno,
+         angle_col = 45)
+
+```
+
+Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo control (NIT), el otro todas las muestras infiltradas (SFI y ELI) sin que haya una diferencia clara entre ambos grupos de infiltradas.
+
+Lo genes representados en el mapa de calor, aquellos 20 que presentan mayor varianción intermuestral, parecen dividirse en dos grandes grupos.
 
 ### Anotación de las listas de genes
 
-A continuación presentamos una muestra de las listas de genes diferencialmente expresados para cada comparación, incluyendo el símbolo y nombre de cada gen, ordenados por p-valor ajustado.
+En las listas que hemos generado los genes están identificados por un código Ensembl. Sin embargo, a nosotros humanos nos resulta más cómodo trabajar con los símbolos o nombres de cada gen. Es por eso que hemos procedido a anotar las listas para incluir el símbolo de cada gen y su código Entrez.
 
-```{r topTab lists WvsE.CTRL, eval = FALSE}
-topTab_WvsE.CTRL <- topTable(fit.main, number=nrow(fit.main), coef="WvsE.CTRL",
-                              adjust="fdr")
+No debemos de dejar de tener en cuenta, sin embargo, que las bases de datos Ensembl y Entrez utilizan criterios diferentes para definir qué es un gen, y tienen requisitos diferentes para incluir un gen en la base de datos. Esto tiene como consecuencia que muchos de los códigos de Ensembl no tengan su equivalente en códigos Entrez. Estos últimos, sin embargo, serán necesarios para el análisis de significación biológica. Así pues, como parte del análisis de expresión diferencial hemos producido dos listas; una con los códigos Ensembl, y otra con los códigos Entrez que no coincide exactamente con la primera.
+
+```{r load annotation libraries}
+library('AnnotationDbi')
+library('org.Hs.eg.db')
 ```
 
-```{r topTab lists WvsE.ASD, eval=FALSE}
-topTab_WvsE.ASD <- topTable(fit.main, number=nrow(fit.main), coef="WvsE.ASD",
-                              adjust="fdr")
+```{r annotate res object}
+# Cut the version from the ensembl code
+# From https://www.biostars.org/p/178726/
+ensembl_codes <- gsub("\\..*", "", row.names(res_NITvSFI))
+
+# Add symbol column
+res_NITvSFI$symbol <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "SYMBOL",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add Entrez ID
+res_NITvSFI$entrez <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "ENTREZID",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
 ```
 
-```{r topTab lists INT, eval=FALSE}
-topTab_INT <- topTable(fit.main, number=nrow(fit.main), coef="INT",
-                              adjust="fdr")
-```
+Ejemplo del listado de genes, ordenado por p-valor ajustado (decreciente), incluyendo el símbolo del gen:
 
-```{r anotar toptables, eval=FALSE}
-# Generate table from GPL with columns of interest
-geneAnots <- gpl_table[, c("ID", "Gene.Title", "Gene.Symbol", "Entrez.Gene")]
+```{r genes with symbol ordered by p-value}
+resOrdered <- res_NITvSFI[order(res_NITvSFI$padj),]
 
-anottopTap <- function(x){
-  annotated <- merge(geneAnots, x, by.x = "ID", by.y = 0)
-  # Sort by adjusted p.value
-  annotated <- annotated[order(annotated$adj.P.Val), ]
-  # Delete row names
-  rownames(annotated) <- NULL
-  return (annotated)
+# Store as a csv
+if(!(file.exists("results/resOrdered.csv"))){
+  write.csv(resOrdered, file="results/resOrdered.csv")
 }
 
-anotopTab_WvsE.CTRL <- anottopTap(topTab_WvsE.CTRL)
-anotopTab_WvsE.ASD <- anottopTap(topTab_WvsE.ASD)
-anotopTab_INT <- anottopTap(topTab_INT)
+head(resOrdered)
 ```
 
-```{r sample annotated WvsE.CTRL, eval=FALSE}
-anotopTab_WvsE.CTRL$adj.P.Val <- format(anotopTab_WvsE.CTRL$adj.P.Val, digits = 4)
-knitr::kable(anotopTab_WvsE.CTRL[1:6, c("Gene.Title", "Gene.Symbol", "logFC", "adj.P.Val")],
-     row.names = FALSE, scientific = TRUE,
-     caption = "Comparación 1 (WvsE.CTRL): Genes diferencialmente expresados con colas poli-A cortas (WASH) frente a colas poli-A largas (ELUTED) en sujetos control (CTRL).")
-write.csv2(anotopTab_WvsE.CTRL, file = "results/anotopTab_WvsE.CTRL.csv", row.names = FALSE)
-```
+La lista completa de genes puede descargarse como archivo en formato CSV XXXXdesde este enlace.XXXX
 
 
-```{r sample annotated WvsE.ASD, eval=FALSE}
-anotopTab_WvsE.ASD$adj.P.Val <- format(anotopTab_WvsE.ASD$adj.P.Val, digits = 4)
-knitr::kable(anotopTab_WvsE.ASD[1:6, c("Gene.Title", "Gene.Symbol", "logFC", "adj.P.Val")],
-     row.names = FALSE, caption = "Comparación 2 (WvsE.ASD): Genes diferencialmente expresados con colas poli-A cortas (WASH) frente a colas poli-A largas (ELUTED) en sujetos autistas (ASD).")
-write.csv2(anotopTab_WvsE.ASD, file = "results/anotopTab_WvsE.ASD.csv", row.names = FALSE)
-```
-
-```{r sample annotated INT, eval=FALSE}
-knitr::kable(anotopTab_INT[1:6, c("Gene.Title", "Gene.Symbol", "logFC", "adj.P.Val")],
-     row.names = FALSE, digits = 4, scientific = TRUE,
-     caption = " Comparación 3 (INT): Genes que cambian su expresión de forma significativa por interacción entre la condición del sujeto (CONTROL, ASD) y el material examinado (WASH, ELUTED).")
-```
-
-#### Visualización (volcanoplots)
-
-Para la visualización de estos datos elegimos las gráficas conocidas como volcanoplots. Cada gen está representado por un punto, con los cambios de expresión en el eje de abcisas y los p-valores ajustados en el eje de ordenadas. Se muestra en cada gráfica el nombre de los 5 genes más significativos. La línea roja horizontal corresponde al p-valor = 0.05.
-```{r volcanoplots, fig.height=12, fig.width=5, fig.cap= "Volcanoplots de cada una de las listas anotadas de genes en cada una de las comparaciones. Se muestra en cada gráfica en nombre de los 5 genes más significativos. La línea roja horizontal corresponde al p-valor = 0.05.", eval=FALSE}
-par(mfrow=c(3, 1))
-
-contrastes <- colnames(fit.main$coefficients)
-
-for (contrast in 1:length(contrastes)){
-  volcanoplot(fit.main, 
-              coef = contrastes[contrast],
-              highlight = 5, 
-              names = eval(str2expression(
-                paste0("anotopTab_", contrastes[contrast], "$Gene.Symbol"))),
-              main=paste("Genes diferencialmente expresados", contrastes[contrast],
-                         sep = "\n"))
-abline(v=c(-1,1))
-abline(h=-log10(0.05), col="red")
-}
-```
-
-<!-- Sólo examinando las gráficas podemos ver que no tiene sentido examinar los resultados de la comparación por interacción (INT), ya que apenas hay genes con expresión diferencial significativa; y estos, con sólo pequeñas diferencias de expresión. -->
-
-<!-- Sí que son aparentes en cambio las diferencias de expresión significativas en las comparaciones entre "Wash" y "Eluted", aunque sólo con éstas no obtenemos respuesta a la pregunta de si hay diferencias entre "Control" y "ASD". Esto lo exploraremos en los siguientes apartados. -->
 
 ### Comparaciones múltiples
 <!-- Debido al diseño experimental y el objetivo del estudio, el interés final no está sencillamente en las listas de genes diferencialmente poliadenilados. Lo que queremos conocer es, de aquellos ARN que presentan diferencias de poliadenilación, cuáles son exclusivos del grupo "Control" y cuáles del grupo "ASD". -->
