@@ -700,7 +700,7 @@ La lista completa de genes puede descargarse como archivo en formato CSV XXXXdes
 
 
 ### Comparaciones múltiples
-<!-- Debido al diseño experimental y el objetivo del estudio, el interés final no está sencillamente en las listas de genes diferencialmente poliadenilados. Lo que queremos conocer es, de aquellos ARN que presentan diferencias de poliadenilación, cuáles son exclusivos del grupo "Control" y cuáles del grupo "ASD". -->
+Debido a que los grupos experimentales corresponden a grupo control (NIT), síntomas suaves (SFI), y síntomas severos (ELI); puede ser de gran interés saber qué genes presentan expresión diferencial, por ejemplo, en las comparaciones del grupo control frente a los grupos con síntomas,y qué genes presentan expresión diferencial sólo en las comparaciones entre grupos con síntomas pero no cuando se compara con el grupo control.
 
 ```{r decidetests, eval=FALSE}
 # as many columns as comparisons and as many rows as genes.
@@ -762,61 +762,6 @@ res.ASD <- res.selected2[(res.selected2[,2] != 0) == TRUE, ]
 write.csv2(geneAnots[geneAnots$ID %in% rownames(res.ASD), ],
            file = "results/ASD-differential-genes.csv", row.names = FALSE)
 ```
-
-
-
-#### Visualización de perfiles de expresión mediante heatmap
-```{r seleccion genes para visualizacion perfiles expresion lista interes, eval=FALSE}
-probesInHeatmap <- rownames(res.selected2)
-HMdata <- eset_filtered[rownames(eset_filtered) %in% probesInHeatmap, ]
-HMdata <- merge(HMdata, geneAnots[, c("ID", "Gene.Symbol")], by.x=0, by.y="ID")
-rownames(HMdata) <- HMdata$Gene.Symbol
-HMdata[, c("Row.names", "Gene.Symbol")] <- NULL
-colnames(HMdata) <- my.targets$X.Abreviado
-no_input_labels <- grep("INPUT", array_labels, value=TRUE, invert = TRUE)
-HMdata <- HMdata[, no_input_labels]
-```
-```{r, eval=FALSE}
-#Colores para ColSideColors:
-colsidecolors <- c("orange", "red", 
-  "orange", "red", "blue",
-  "green", "blue",    "green", 
-  "orange", "red", 
- "orange", "red", "blue",   
- "green",  "blue",    "green", 
- "blue",    "green" )
-```
-```{r Generate heatmap with clustering, eval=FALSE}
-paleta <- colorRampPalette(c("blue", "red"))(n = 299)
-library(gplots)
-
-heatmap.2(as.matrix(HMdata),
-          Rowv = TRUE,
-          Colv = TRUE,
-          dendrogram = "both",
-          main = "Genes diferencialmente expresados \n FDR < 0.1",
-          scale = "row",
-          col = paleta,
-          sepcolor = "white",
-          sepwidth = c(0.05, 0.05),
-          cexRow = 0.5,
-          cexCol = 0.7,
-          key = TRUE,
-          keysize = 1.5,
-          density.info = "histogram",
-          ColSideColors = colsidecolors,
-          tracecol = NULL,
-          srtCol = 30)
-```
-
-<!-- Los mapas de calor (heatmaps) pueden servir para agrupar muestras y genes por similaridad en los patrones de expresión. En este caso, para simplificar, hemos eliminado las muestras del grupo "Input", que no nos están ofreciendo información útil. -->
-
-<!-- Al igual que ocurría al examinar los componentes principales y el dendrograma, las muestras se agrupan sobre todo por material ("Wash" y "Eluted"). Dentro del grupo "Wash", sí que parece haber una separación entre "Control" y "ASD" (derecha del gráfico). -->
-
-<!-- Clave de color para las muestras:   -->
-<!-- Control-Wash: naranja ASD-Wash: azul   -->
-<!-- Control-Eluted: rojo ASD-Eluted: verde -->
-
 
 ### Significatividad biológica
 
