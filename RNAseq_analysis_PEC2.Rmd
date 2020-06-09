@@ -765,27 +765,27 @@ write.csv2(geneAnots[geneAnots$ID %in% rownames(res.ASD), ],
 
 ### Significatividad biológica
 
-<!-- Una vez tenemos nuestras listas de genes anotadas, un herramienta más para interpretar los resultados del estudio es el examen de la significatividad biológica. En este informe, lo que hemos hecho es, a partir de las listas de genes con comportamiento diferencial para las condiciones "Control" y "ASD", comprobar si existen funciones, procesos biológicos o rutas moleculares que aparezcan con más frecuencias en estas listas que en el resto de genes analizados. -->
+Una vez tenemos nuestras listas de genes anotadas, un herramienta más para interpretar los resultados del estudio es el examen de la significatividad biológica. En este informe, lo que hemos hecho es, a partir de las listas de genes con comportamiento diferencial, comprobar si existen funciones, procesos biológicos o rutas moleculares que aparezcan con más frecuencia en estas listas que en el resto de genes analizados.
 
-<!-- Como listas de genes hemos utilizado las siguientes:   -->
-<!-- **Común** - lista completa de genes con comportamiento diferencias en grupo "Control" frente a "ASD".   -->
-<!-- **Control** - lista de genes con comportamiento diferencial exclusivos del grupo "Control" (es un subset de la lista "Común").   -->
+Como listas de genes hemos utilizado las siguientes:
+**NITvsSFI** - lista de genes con comportamiento diferencial en la comparación entre los grupos NIT y SFI.
+<!-- **Control** - lista de genes con comportamiento diferencial exclusivos del grupo "Control" (es un subset de la lista "Común"). -->
 <!-- **ASD** - lista de genes con comportamiento diferencial exclusivos del grupo "ASD" (es un subset de la lista "Común"). -->
 
-<!-- **Universo** - lista de todos los genes detectables con el modelo de array usado en este estudio. -->
+**Universo** - lista de todos los genes con código Entrez en la base de datos org.Hs.eg.db. XXXXreferenciaXXXX
 
-```{r lista para significatividad biologica, eval=FALSE}
+```{r lista para significatividad biologica}
 
-# Vector of EntrezIDs from the list of genes of interest (probesInHeatmap)
-geneList <- geneAnots[geneAnots$ID %in% probesInHeatmap, 4]
-geneListControl <- as.character(read.csv2("results/control-differential-genes.csv")[, 4])
-geneListASD <- as.character(read.csv2("results/ASD-differential-genes.csv")[, 4])
-universe <- nondup_probes$Entrez.Gene
+# Vector of EntrezIDs from the list of genes of interest, removing NAs
+geneVector_NITvsSFI <- res_NITvSFI$entrez[!is.na(res_NITvSFI$entrez)]
+# geneListControl <- as.character(read.csv2("results/control-differential-genes.csv")[, 4])
+# geneListASD <- as.character(read.csv2("results/ASD-differential-genes.csv")[, 4])
+geneVector_universe <- keys(org.Hs.eg.db, keytype = "ENTREZID")
 ```
 
 #### Test de sobrerrepresentación de términos GO
 
-<!-- El análisis estadístico lo hemos realizado con la función _enrichGO()_ del paquete _clusterProfiler_ para el lenguaje R. Esta función devuelve un listado de términos GO estadísticamente más representados en nuestra lista de genes, con respecto a la lista Universo. -->
+El análisis estadístico lo hemos realizado con la función _enrichGO()_ del paquete _clusterProfiler_ para el lenguaje R. Esta función devuelve un listado de términos GO estadísticamente más representados en nuestra lista de genes, con respecto a la lista Universo.
 
 ```{r test de sobrerrepresentacion, eval=FALSE}
 library(clusterProfiler)
