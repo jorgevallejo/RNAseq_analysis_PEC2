@@ -845,6 +845,18 @@ barplot(ego, showCategory = 20)
 dotplot(ego, showCategory = 30) + ggtitle('Dotplot the análisis de sobre-representación')
 ```
 
+## Red conceptual
+Con el gráfico de red conceptual representamos cómo un mismo gen puede pertenecer a varios términos.
+
+```{r gene concept network, eval=FALSE}
+# Lo dejo fuera del informa final porque en la gráfica me salen tal cantidad de genes
+# que se vuelve ilegible.
+# Convert gene ID to symbol
+egox <- setReadable(ego, 'org.Hs.eg.db', keyType = 'auto')
+
+cnetplot(egox, categorySize = 'pvalue')
+```
+
 
 # Discusión
 
