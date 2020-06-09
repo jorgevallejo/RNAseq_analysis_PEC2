@@ -833,7 +833,17 @@ egoset <- gseGO(geneList = gse_genelist,
 
 <!-- El resultado ha sido el mismo que en el análisis anterior. No se ha detectado ningún grupo de genes especialmente representado en el listado de nuestros genes de interés con ARN diferencialmente poliadenilados. -->
 
-# Resultados
+# Visualización de resultados
+## Gráfico de barras
+```{r enriquecimiento funcional barplot, fig.cap='Gráfico de barras para visualización de términos GO (componentes celulares) estadísticamente enriquecidos en la comparación NIT vs SFI. Se muestran los primeros veinte términos ordenados por p-valor ajustado en orden creciente.'}
+library('enrichplot')
+barplot(ego, showCategory = 20)
+```
+
+## Dot plot
+```{r over-representation dot plot, fig.cap='Gráfico de puntos representado 30 términos GO (componentes celulares) significativos en análisis de sobre-representación para la comparación de los grupos NIT vs. SFI. Ordenados por tasa génica. El color de los puntos representa el p-valor ajustado del análisis; el tamaño representa la cantidad de genes.'}
+dotplot(ego, showCategory = 30) + ggtitle('Dotplot the análisis de sobre-representación')
+```
 
 
 # Discusión
