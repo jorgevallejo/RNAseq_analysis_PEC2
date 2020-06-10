@@ -313,12 +313,24 @@ if(file.exists(interfile)){
 Los histogramas nos ofrecen una perspectiva diferente sobre la distribución de las pseudocuentas, más detallada que los diagramas de cajas.
 
 ```{r histograms and density plots, fig.cap='Histogramas suavizados de densidades de pseudocuentas en cada muestra, separados por grupo experimental.'}
+
+interfile <- "images/histo_density.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+  # Generate histograms
 ggplot(pseudoCounts_melted, aes(x = value, colour = Muestras, fill = Muestras)) +
   ylim(c(0, 0.25)) +
   geom_density(alpha = 0.2, size = 0.25) +
   facet_wrap(~ Grupo) +
   theme(legend.position = "none") +
   xlab(expression(log[2](count + 1)))
+  # Save
+  ggsave(filename = interfile)
+  # Draw in document
+  knitr::include_graphics(interfile)
+}
 ```
 
 En general, el perfil de los histogramas es muy parecido para todas las muestras, y entre los diferentes grupos experimentales.
