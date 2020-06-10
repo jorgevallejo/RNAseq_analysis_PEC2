@@ -107,19 +107,7 @@ str(counts)
 
 # Take 10 samples from each group at random
 set.seed(50110528)
-# targets_NIT <- targets[targets$Group == "NIT", ]
-# targets_NIT <- targets_NIT[sample(nrow(targets_NIT), 10), ]
-# 
-# targets_SFI <- targets[targets$Group == "SFI", ]
-# targets_SFI <- targets_SFI[sample(nrow(targets_SFI), 10), ]
-# 
-# targets_ELI <- targets[targets$Group == "ELI", ]
-# targets_ELI <- targets_ELI[sample(nrow(targets_ELI), 10), ]
-# 
-# targets_sampled <- rbind(targets_NIT, targets_SFI, targets_ELI)
 
-# Remove samples that we are not going to use any more
-# rm(list = c("targets_ELI", "targets_NIT", "targets_SFI"))
 groups <- c("NIT", "SFI", "ELI")
 
 # Function for the stratified sampling
@@ -765,77 +753,97 @@ write.csv2(geneAnots[geneAnots$ID %in% rownames(res.ASD), ],
 
 ### Significatividad biológica
 
-<!-- Una vez tenemos nuestras listas de genes anotadas, un herramienta más para interpretar los resultados del estudio es el examen de la significatividad biológica. En este informe, lo que hemos hecho es, a partir de las listas de genes con comportamiento diferencial para las condiciones "Control" y "ASD", comprobar si existen funciones, procesos biológicos o rutas moleculares que aparezcan con más frecuencias en estas listas que en el resto de genes analizados. -->
+Una vez tenemos nuestras listas de genes anotadas, un herramienta más para interpretar los resultados del estudio es el examen de la significatividad biológica. En este informe, lo que hemos hecho es, a partir de las listas de genes con comportamiento diferencial, comprobar si existen funciones, procesos biológicos o rutas moleculares que aparezcan con más frecuencia en estas listas que en el resto de genes analizados.
 
-<!-- Como listas de genes hemos utilizado las siguientes:   -->
-<!-- **Común** - lista completa de genes con comportamiento diferencias en grupo "Control" frente a "ASD".   -->
-<!-- **Control** - lista de genes con comportamiento diferencial exclusivos del grupo "Control" (es un subset de la lista "Común").   -->
+Como listas de genes hemos utilizado las siguientes:
+**NITvsSFI** - lista de genes con comportamiento diferencial en la comparación entre los grupos NIT y SFI.
+<!-- **Control** - lista de genes con comportamiento diferencial exclusivos del grupo "Control" (es un subset de la lista "Común"). -->
 <!-- **ASD** - lista de genes con comportamiento diferencial exclusivos del grupo "ASD" (es un subset de la lista "Común"). -->
 
-<!-- **Universo** - lista de todos los genes detectables con el modelo de array usado en este estudio. -->
+**Universo** - lista de todos los genes con código Entrez en la base de datos org.Hs.eg.db. XXXXreferenciaXXXX
 
-```{r lista para significatividad biologica, eval=FALSE}
+```{r lista para significatividad biologica}
 
-# Vector of EntrezIDs from the list of genes of interest (probesInHeatmap)
-geneList <- geneAnots[geneAnots$ID %in% probesInHeatmap, 4]
-geneListControl <- as.character(read.csv2("results/control-differential-genes.csv")[, 4])
-geneListASD <- as.character(read.csv2("results/ASD-differential-genes.csv")[, 4])
-universe <- nondup_probes$Entrez.Gene
+# Vector of EntrezIDs from the list of genes of interest, removing NAs
+geneVector_NITvsSFI <- res_NITvSFI$entrez[!is.na(res_NITvSFI$entrez)]
+# geneListControl <- as.character(read.csv2("results/control-differential-genes.csv")[, 4])
+# geneListASD <- as.character(read.csv2("results/ASD-differential-genes.csv")[, 4])
+geneVector_universe <- keys(org.Hs.eg.db, keytype = "ENTREZID")
 ```
 
 #### Test de sobrerrepresentación de términos GO
 
-<!-- El análisis estadístico lo hemos realizado con la función _enrichGO()_ del paquete _clusterProfiler_ para el lenguaje R. Esta función devuelve un listado de términos GO estadísticamente más representados en nuestra lista de genes, con respecto a la lista Universo. -->
+El análisis estadístico lo hemos realizado con la función _enrichGO()_ del paquete _clusterProfiler_ para el lenguaje R. Esta función devuelve un listado de términos GO estadísticamente más representados en nuestra lista de genes, con respecto a la lista Universo.
 
-```{r test de sobrerrepresentacion, eval=FALSE}
+```{r test de sobrerrepresentacion}
 library(clusterProfiler)
 library(org.Hs.eg.db)
-# As universe, I will use all genes represented in the microarray
-# before filtering by IQR
-ego <- enrichGO(gene = geneListControl,
-                universe = universe,
+# As universe, I will use all genes represented in the database
+if(file.exists("intermediateData/ego.RData")){
+  load("intermediateData/ego.RData")
+}else{
+ego <- enrichGO(gene = geneVector_NITvsSFI,
+                universe = geneVector_universe,
                 OrgDb = org.Hs.eg.db,
                 ont = "CC",
                 pAdjustMethod = "BH",
-                pvalueCutoff = 0.05,
-                qvalueCutoff = 0.2,
+                pvalueCutoff = 0.01,
+                qvalueCutoff = 0.5,
                 readable = TRUE)
 
-save(ego, file="intermediateResults/ego.RData")
+ save(ego, file="intermediateData/ego.RData")
+}
 ```
-
-<!-- Para un valor de corte del p-valor de 0.05, y valor de corte del q-valor de 0.2; no se ha encontrado **ningún** término GO estadísticamente más representado en ninguna de las tres listas con respecto a la lista Universo. -->
 
 #### Gene Set Enrichment Analysis
 
-<!-- Este tipo de análisis está especializado en detectar situaciones en las que las diferencias de expresión son pequeñas, pero coordinadas para un grupo de genes relacionados. En este informe hemos utilizado la función _gseGO_ del paquete _cluseterProfiler_ para realizar este análisis. -->
+Este tipo de análisis está especializado en detectar situaciones en las que las diferencias de expresión son pequeñas, pero coordinadas para un grupo de genes relacionados. En este informe hemos utilizado la función _gseGO_ del paquete _cluseterProfiler_ para realizar este análisis.
 ```{r Gene Set Enrichment Analysis, eval=FALSE}
-gse_list_ctrl_raw <- anotopTab_WvsE.CTRL[anotopTab_WvsE.CTRL$ID %in% rownames(res.control), ]
-gse_list_ctrl_raw["abs.logFC"] <- abs(gse_list_ctrl_raw[, "logFC"])
-gse_list_ctrl_raw <- gse_list_ctrl_raw[order(gse_list_ctrl_raw$abs.logFC, decreasing = TRUE),
-                               c("abs.logFC", "Entrez.Gene")]
-gse_list_ctrl <- gse_list_ctrl_raw[, "abs.logFC"]
-names(gse_list_ctrl) <- as.character(gse_list_ctrl_raw[, c("Entrez.Gene")])
+# Generate ranked named vector of genes
+gse_genelist <- res_NITvSFI[!is.na(res_NITvSFI$padj), ] # Remove NAs
+gse_genelist <- gse_genelist[gse_genelist$padj < 0.1, ] # FDR 10%
+gse_genelist <- setNames(abs(gse_genelist$log2FoldChange), # Named vector of fold changes
+                         rownames(gse_genelist))
+gse_genelist <- sort(gse_genelist, decreasing = TRUE) # Sort vector
+names(gse_genelist) <- gsub("\\..*", "", names(gse_genelist)) # Truncate version number
 
-gse_list_asd_raw <- anotopTab_WvsE.ASD[anotopTab_WvsE.ASD$ID %in% rownames(res.ASD), ]
-gse_list_asd_raw["abs.logFC"] <- abs(gse_list_asd_raw[, "logFC"])
-gse_list_asd_raw <- gse_list_asd_raw[order(gse_list_asd_raw$abs.logFC, decreasing = TRUE),
-                               c("abs.logFC", "Entrez.Gene")]
-gse_list_asd <- gse_list_asd_raw[, "abs.logFC"]
-names(gse_list_asd) <- as.character(gse_list_asd_raw[, c("Entrez.Gene")])
 
-ego2 <- gseGO(geneList = gse_list_ctrl,
+egoset <- gseGO(geneList = gse_genelist,
               OrgDb = org.Hs.eg.db,
-              ont = "MF")
-
-ego3 <- gseGO(geneList = gse_list_asd,
-              OrgDb = org.Hs.eg.db,
-              ont = "CC")
+              ont = "ALL",
+              keyType = "ENSEMBL",
+              nPerm = 1000,
+              minGSSize = 100,
+              maxGSSize = 500,
+              pvalueCutoff = 0.1,
+              verbose = TRUE)
 ```
 
 <!-- El resultado ha sido el mismo que en el análisis anterior. No se ha detectado ningún grupo de genes especialmente representado en el listado de nuestros genes de interés con ARN diferencialmente poliadenilados. -->
 
-# Resultados
+# Visualización de resultados
+## Gráfico de barras
+```{r enriquecimiento funcional barplot, fig.cap='Gráfico de barras para visualización de términos GO (componentes celulares) estadísticamente enriquecidos en la comparación NIT vs SFI. Se muestran los primeros veinte términos ordenados por p-valor ajustado en orden creciente.'}
+library('enrichplot')
+barplot(ego, showCategory = 20)
+```
+
+## Dot plot
+```{r over-representation dot plot, fig.cap='Gráfico de puntos representado 30 términos GO (componentes celulares) significativos en análisis de sobre-representación para la comparación de los grupos NIT vs. SFI. Ordenados por tasa génica. El color de los puntos representa el p-valor ajustado del análisis; el tamaño representa la cantidad de genes.'}
+dotplot(ego, showCategory = 30) + ggtitle('Dotplot the análisis de sobre-representación')
+```
+
+## Red conceptual
+Con el gráfico de red conceptual representamos cómo un mismo gen puede pertenecer a varios términos.
+
+```{r gene concept network, eval=FALSE}
+# Lo dejo fuera del informa final porque en la gráfica me salen tal cantidad de genes
+# que se vuelve ilegible.
+# Convert gene ID to symbol
+egox <- setReadable(ego, 'org.Hs.eg.db', keyType = 'auto')
+
+cnetplot(egox, categorySize = 'pvalue')
+```
 
 
 # Discusión
