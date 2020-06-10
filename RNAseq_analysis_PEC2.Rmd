@@ -38,7 +38,7 @@ knitr::opts_chunk$set(echo = FALSE,
 # 'intermediateData' contains .RData objects with processed data.
 # 'results' stores the final report files.
 
-directories <- c("data", "results", "intermediateData")
+directories <- c("data", "results", "intermediateData", "images")
 
 # Create directories
 lapply(directories, function(x){
@@ -54,7 +54,7 @@ lapply(directories, function(x){
 # Remember that the .RData files are there to
 # avoid unnecesarily redoing of long data processing.
 
-directories <- c("results/", "intermediateData/")
+directories <- c("results/", "intermediateData/", "images/")
 
 file.remove(
   # Create a character vector of relative paths
