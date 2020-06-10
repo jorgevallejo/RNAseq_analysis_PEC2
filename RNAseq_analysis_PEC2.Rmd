@@ -275,11 +275,14 @@ Con los diagramas de cajas podemos observar y comparar la distribución de las p
 ```{r boxplots, fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
 library('reshape')
 
-if(file.exists("intermediateData/pseudoCounts_melted.RData")){
-  load("intermediateData/pseudoCounts_melted.RData")
+# Melt pseudocounts
+interfile <- "intermediateData/pseudoCounts_melted.RData"
+
+if(file.exists(interfile)){
+  load(interfile)
 }else{
   pseudoCounts_melted <- melt(pseudoCounts, variable_name = "Muestras")
-  save(pseudoCounts_melted, file = "intermediateData/pseudoCounts_melted.RData")
+  save(pseudoCounts_melted, file = interfile)
 }
 
 # Add experimental group to melted dataframe
@@ -287,7 +290,7 @@ pseudoCounts_melted <- data.frame(pseudoCounts_melted,
                                   Grupo = substr(pseudoCounts_melted$Muestras, 7, 9))
 
 # Draw boxplot of pseudocounts distribution
-interfile <- "intermediateData/pseudoCounts_boxplots.png"
+interfile <- "images/pseudoCounts_boxplots.png"
 
 if(file.exists(interfile)){
   knitr::include_graphics(interfile)
@@ -301,6 +304,7 @@ if(file.exists(interfile)){
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = rel(0.8)))
 
  ggsave(filename = interfile)
+ knitr::include_graphics(interfile)
 }
 ```
 
