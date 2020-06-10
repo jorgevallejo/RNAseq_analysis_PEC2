@@ -173,7 +173,7 @@ targets_sampled <- targets_sampled[order(targets_sampled$Group,
 
 \newpage
 # Abstract
-Análisis de expresión génica diferencial de un estudio obtenido del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Partimos de datos de expresión obtenidos por RNA-seq, pertenecientes a un análisis de muestras tiroides pertenecientes a tres grupos: NIT (_not infiltrated tissues_, tejidos no infiltrados), SFI (_small focal infiltrates_, infiltrados focales pequeños), y ELI (_extensive lymphoid infiltrates_, infiltrados linfoides amplios). Como resultado hemos obtenido listados de genes con expresión diferencial entre los diferentes grupos, y listados de términos GO sobrerrepresentados en dichos listados.
+**Análisis de expresión génica diferencial** de un estudio obtenido del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Partimos de datos de expresión obtenidos por **RNA-seq**, pertenecientes a un análisis de muestras tiroides pertenecientes a tres grupos: NIT (_not infiltrated tissues_, tejidos no infiltrados), SFI (_small focal infiltrates_, infiltrados focales pequeños), y ELI (_extensive lymphoid infiltrates_, infiltrados linfoides amplios). Como resultado hemos obtenido **listados de genes** con expresión diferencial entre los diferentes grupos, y **listados de términos GO** sobrerrepresentados en dichos listados.
 
 # Objetivos
 Los objetivos de este análisis son  
