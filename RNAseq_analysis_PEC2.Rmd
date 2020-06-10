@@ -866,7 +866,19 @@ egoset <- gseGO(geneList = gse_genelist,
 ## Gráfico de barras
 ```{r enriquecimiento funcional barplot, fig.cap='Gráfico de barras para visualización de términos GO (componentes celulares) estadísticamente enriquecidos en la comparación NIT vs SFI. Se muestran los primeros veinte términos ordenados por p-valor ajustado en orden creciente.'}
 library('enrichplot')
+
+interfile <- "images/enri_barplot.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+  # Generate barplot
 barplot(ego, showCategory = 20)
+  # Save
+  ggsave(filename = interfile)
+  # Include in document
+  knitr::include_graphics(interfile)
+}
 ```
 
 ## Dot plot
