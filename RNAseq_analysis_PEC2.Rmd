@@ -488,12 +488,14 @@ if (file.exists("intermediateData/ddsMat_sizeFactors.RData")){
 
 ```{r inspect size factors}
 kable(as.data.frame(cbind(Muestras = names(sizeFactors(ddsMat)),
-                    Factores = round(sizeFactors(ddsMat), digits = 4),
-                    row.names = NULL),
+                    Factores = round(sizeFactors(ddsMat), digits = 4))),
       row.names = FALSE,
-      caption = 'Factores de normalización aplicados a cada muestra (redondeados a 4 dígitos). Obsérvese que ninguno de los factores se aleja excesivamente de la unidad, lo que apunta a que ninguna de las muestras estudiadas tiene una profundidad de lectura muy alejada del resto.',
-      align = 'rl'))
+      caption = 'Factores de normalización aplicados a cada muestra (redondeados a 4 dígitos).',
+      align = 'rl')
 ```
+
+Obsérvese que ninguno de los factores se aleja excesivamente de la unidad, lo que apunta a que ninguna de las muestras estudiadas tiene una profundidad de lectura muy alejada del resto.
+\newpage
 
 ### Transformación de los datos: estabilización de la varianza
 
@@ -525,7 +527,7 @@ df <- bind_rows(
   as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst")
 )
 ```
-```{r variabilidad expresion en dos muestras, fig.cap='La mayor variabilidad en la expresión génica se encuentra en aquellos genes con menos cuentas. La transformación estabilizadora de varianza (VST) elimina dicha variabilidad.'}
+```{r variabilidad expresion en dos muestras, out.width='50%', fig.cap='La mayor variabilidad en la expresión génica se encuentra en aquellos genes con menos cuentas. La transformación estabilizadora de varianza (VST) elimina dicha variabilidad.'}
 library('ggplot2')
 
 interfile <- "images/variabilidad.png"
