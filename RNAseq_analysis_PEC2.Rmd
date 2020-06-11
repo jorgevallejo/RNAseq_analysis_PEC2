@@ -72,6 +72,58 @@ library(knitr)
 
 ```
 
+
+
+\newpage
+# Abstract
+**Análisis de expresión génica diferencial** de un estudio obtenido del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Partimos de datos de expresión obtenidos por **RNA-seq**, pertenecientes a un análisis de muestras tiroides pertenecientes a tres grupos: NIT (_not infiltrated tissues_, tejidos no infiltrados), SFI (_small focal infiltrates_, infiltrados focales pequeños), y ELI (_extensive lymphoid infiltrates_, infiltrados linfoides amplios). Como resultado hemos obtenido **listados de genes** con expresión diferencial entre los diferentes grupos, y **listados de términos GO** sobrerrepresentados en dichos listados.
+
+# Objetivos
+Los objetivos de este análisis son  
+i) averiguar los cambios de expresión génica en la tiroides entre situación de salud (NIT) y situación patológica (SFI y ELI),  
+ii) explorar los cambios en la expresión génica entre tejidos de tiroides en situación patológica más severa (ELI) y menos severa (SFI), y finalmente  
+iii) examinar las rutas moleculares implicadas.
+
+# Materiales y métodos
+
+## Datos de origen
+Originalmente, los datos brutos fueron obtenidos por RNA-seq y proceden del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Para este análisis, sin embargo, he trabajado con datos ya pre-procesados en forma de dos archivos con formato CSV. Estos archivos (counts.csv y targets.csv) se pueden encontrar en mi perfil de GitHub siguiendo XXXXeste enlaceXXXX.
+
+El archivo counts.csv contiene el número de cuentas detectadas para cada gen en cada muestra del estudio. Es una tabla en la que cada observación (fila) corresponde a un gen reconocido por el proyecto Ensembl, y cada variable (columna) a una de las muestras de tejido del estudio. A partir de los datos de este archivo podemos analizar la expresión de cada gen en cada muestra.
+
+El archivo targets.csv contiene información relevante acerca de cada muestra. Cada observación (fila) de la tabla corresponde a una muestra, y cada variable (columna) corresponde a una característica de la muestra como el código de identificación, el tejido de origen, el grupo experimental al que pertenece, o el sexo del sujeto del que procede la muestra.
+
+## Diseño experimental
+
+El total de muestras es de 292; divididas en 236 muestras del grupo NIT, 42 muestras del grupo SFI y 14 muestras del grupo ELI. Para este informe se nos pidió seleccionar 10 muestras, aleatoriamente, de cada grupo para trabajar sobre un total de 30 muestras.
+
+Debido a que los perfiles de expresión génica pueden variar según el sexo [@naqvi2019conservation], he seleccionado las muestras de tal forma que, dentro de cada grupo experimental, la cantidad de muestras provenientes de hembras sea la misma que de varones (ver sección ["Obtención de los datos en bruto"](#obtencion)).
+
+Como hay tres grupos, el análisis de expresión diferencial lo he efectuado sobre tres comparaciones: SFI-NIST, ELI-NIST y ELI-SFI.
+
+## Procedimiento seguido en el análisis
+
+Los pasos seguidos para realizar el presente análisis han sido los siguientes: 
+
+1. Obtención de los datos de expresión en bruto.  
+2. Control de calidad de los datos.  
+3. Normalización.  
+4. Filtraje no específico.  
+5. Identificación de genes diferencialmente expresados.  
+6. Anotación de los resultados.  
+7. Comparación entre comparaciones.  
+8. Análisis del enriquecimiento de rutas.
+
+<a name="obtencion"></a>  
+
+### Obtención de los datos en bruto
+
+Como se ha señalado anteriormente, hemos recibido dos archivos con formato CSV conteniendo los datos pre-procesados de 292 muestras, de las cuales debíamos seleccionar al azar 10 de cada grupo experimental (en total 30 muestras).
+
+Para seleccionar las muestras al azar, he dividido primero el total de muestras por grupos experimentales (NIT, SFI y ELI), y cada grupo lo he dividido por sexos (varón y hembra). De cada uno de esos grupos (NIT-varones, NIT-hembras, SFI-varones, etc.) he elegido al azar 5 muestras para un total de 30 muestras sobre las que realizar el informe.
+
+Todo el trabajo de selección y procesado de datos, y los análisis estadísticos, han sido realizados con el lenguaje de programación R. El entorno de desarrollo ha sido RStudio. Muchos de los paquetes usados como extensión de R han sido obtenidos de Bioconductor, con especial relevancia para este informe del paquete DESeq2. El listado completo de los paquetes usados y sus versiones se puede leer en el [apéndice B](#apendiceB). El código utilizado para la manipulación de datos, y la composición de este informe, así como los archivos con los datos; puede consultarse en mi página de Github: [https://github.com/jorgevallejo/RNAseq_analysis_PEC2](https://github.com/jorgevallejo/RNAseq_analysis_PEC2)
+
 ```{r read data into R}
 # Read targets
 targets <- read.csv("data/targets.csv", stringsAsFactors = FALSE)
@@ -170,56 +222,6 @@ counts_subset <- counts_subset[, order(
 targets_sampled <- targets_sampled[order(targets_sampled$Group,
                                          targets_sampled$ShortName), ]
 ```
-
-\newpage
-# Abstract
-**Análisis de expresión génica diferencial** de un estudio obtenido del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Partimos de datos de expresión obtenidos por **RNA-seq**, pertenecientes a un análisis de muestras tiroides pertenecientes a tres grupos: NIT (_not infiltrated tissues_, tejidos no infiltrados), SFI (_small focal infiltrates_, infiltrados focales pequeños), y ELI (_extensive lymphoid infiltrates_, infiltrados linfoides amplios). Como resultado hemos obtenido **listados de genes** con expresión diferencial entre los diferentes grupos, y **listados de términos GO** sobrerrepresentados en dichos listados.
-
-# Objetivos
-Los objetivos de este análisis son  
-i) averiguar los cambios de expresión génica en la tiroides entre situación de salud (NIT) y situación patológica (SFI y ELI),  
-ii) explorar los cambios en la expresión génica entre tejidos de tiroides en situación patológica más severa (ELI) y menos severa (SFI), y finalmente  
-iii) examinar las rutas moleculares implicadas.
-
-# Materiales y métodos
-
-## Datos de origen
-Originalmente, los datos brutos fueron obtenidos por RNA-seq y proceden del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Para este análisis, sin embargo, he trabajado con datos ya pre-procesados en forma de dos archivos con formato CSV. Estos archivos (counts.csv y targets.csv) se pueden encontrar en mi perfil de GitHub siguiendo XXXXeste enlaceXXXX.
-
-El archivo counts.csv contiene el número de cuentas detectadas para cada gen en cada muestra del estudio. Es una tabla en la que cada observación (fila) corresponde a un gen reconocido por el proyecto Ensembl, y cada variable (columna) a una de las muestras de tejido del estudio. A partir de los datos de este archivo podemos analizar la expresión de cada gen en cada muestra.
-
-El archivo targets.csv contiene información relevante acerca de cada muestra. Cada observación (fila) de la tabla corresponde a una muestra, y cada variable (columna) corresponde a una característica de la muestra como el código de identificación, el tejido de origen, el grupo experimental al que pertenece, o el sexo del sujeto del que procede la muestra.
-
-## Diseño experimental
-
-El total de muestras es de 292; divididas en 236 muestras del grupo NIT, 42 muestras del grupo SFI y 14 muestras del grupo ELI. Para este informe se nos pidió seleccionar 10 muestras, aleatoriamente, de cada grupo para trabajar sobre un total de 30 muestras.
-
-Debido a que los perfiles de expresión génica pueden variar según el sexo [@naqvi2019conservation], he seleccionado las muestras de tal forma que, dentro de cada grupo experimental, la cantidad de muestras provenientes de hembras sea la misma que de varones (ver sección ["Obtención de los datos en bruto"](#obtencion)).
-
-Como hay tres grupos, el análisis de expresión diferencial lo he efectuado sobre tres comparaciones: SFI-NIST, ELI-NIST y ELI-SFI.
-
-## Procedimiento seguido en el análisis
-
-Los pasos seguidos para realizar el presente análisis han sido los siguientes: 
-
-1. Obtención de los datos de expresión en bruto.  
-2. Control de calidad de los datos.  
-3. Normalización.  
-4. Filtraje no específico.  
-5. Identificación de genes diferencialmente expresados.  
-6. Anotación de los resultados.  
-7. Comparación entre comparaciones.  
-8. Análisis del enriquecimiento de rutas.
-
-<a name="obtencion"></a>  
-
-### Obtención de los datos en bruto
-
-Como se ha señalado anteriormente, hemos recibido dos archivos con formato CSV conteniendo los datos pre-procesados de 292 muestras, de las cuales debíamos seleccionar al azar 10 de cada grupo experimental (en total 30 muestras).
-
-Para seleccionar las muestras al azar, he dividido primero el total de muestras por grupos experimentales (NIT, SFI y ELI), y cada grupo lo he dividido por sexos (varón y hembra). De cada uno de esos grupos (NIT-varones, NIT-hembras, SFI-varones, etc.) he elegido al azar 5 muestras para un total de 30 muestras sobre las que realizar el informe.
-
-Todo el trabajo de selección y procesado de datos, y los análisis estadísticos, han sido realizados con el lenguaje de programación R. El entorno de desarrollo ha sido RStudio. Muchos de los paquetes usados como extensión de R han sido obtenidos de Bioconductor, con especial relevancia para este informe del paquete DESeq2. El listado completo de los paquetes usados y sus versiones se puede leer en el [apéndice B](#apendiceB). El código utilizado para la manipulación de datos, y la composición de este informe, así como los archivos con los datos; puede consultarse en mi página de Github: [https://github.com/jorgevallejo/RNAseq_analysis_PEC2](https://github.com/jorgevallejo/RNAseq_analysis_PEC2)
 
 ### Control de calidad de los datos
 Con el control de calidad pretendemos averiguar si los datos de alguna de las muestras presentan defectos o sesgos que desaconsejen usarlos, antes de continuar con el análisis.
