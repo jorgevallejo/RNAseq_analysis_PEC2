@@ -203,14 +203,13 @@ Como hay tres grupos, el análisis de expresión diferencial lo he efectuado sob
 Los pasos seguidos para realizar el presente análisis han sido los siguientes: 
 
 1. Obtenión de los datos de expresión en bruto.  
-2. Control de calidad de los datos brutos.  
+2. Control de calidad de los datos.  
 3. Normalización.  
-4. Control de calidad de los datos normalizados.  
-5. Filtraje no específico.  
-6. Identificación de genes diferencialmente expresados.  
-7. Anotación de los resultados.  
-8. Comparación entre comparaciones.  
-9. Análisis del enriquecimiento de rutas.
+4. Filtraje no específico.  
+5. Identificación de genes diferencialmente expresados.  
+6. Anotación de los resultados.  
+7. Comparación entre comparaciones.  
+8. Análisis del enriquecimiento de rutas.
 
 <a name="obtencion"></a>  
 
@@ -513,10 +512,21 @@ df <- bind_rows(
 ```
 ```{r variabilidad expresion en dos muestras, fig.cap='La mayor variabilidad en la expresión génica se encuentra en aquellos genes con menos cuentas. La transformación estabilizadora de varianza (VST) elimina dicha variabilidad.'}
 library('ggplot2')
-colnames(df)[1:2] <- c("muestra_1", "muestra_2")
 
-ggplot(df, aes(x= muestra_1, y = muestra_2)) + geom_hex(bins = 80) +
+interfile <- "images/variabilidad.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+colnames(df)[1:2] <- c("muestra_1", "muestra_2")
+# Generate plot
+variabilidad <- ggplot(df, aes(x= muestra_1, y = muestra_2)) + geom_hex(bins = 80) +
   coord_fixed() + facet_grid(. ~ transformation)
+# Save plot
+ggsave(interfile, variabilidad)
+# Draw plot
+knitr::include_graphics(interfile)
+}
 ```
 
 ### Distancia entre muestras
