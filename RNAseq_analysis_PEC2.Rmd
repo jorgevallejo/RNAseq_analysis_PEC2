@@ -288,12 +288,12 @@ knitr::include_graphics(interfile) # Draw image
 # Remove big objects from environment
 rm(list = c("histo_counts", "histo_pseudocounts"))
 ```
+\newpage
 
+#### Distribución de pseudocuentas por muestra (diagramas de cajas)
+Con los diagramas de cajas podemos observar y comparar la distribución de las pseudocuentas en las diferentes muestras. Esto comprobar si alguna de las muestras presenta una distribución radicalmente distinta del resto, lo que sería señal de algún error o problema con esa muestra:
 
-#### Diagramas de cajas
-Con los diagramas de cajas podemos observar y comparar la distribución de las pseudocuentas en las diferentes muestras:
-
-```{r boxplots, fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
+```{r boxplots, out.width='75%', fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
 library('reshape')
 
 # Melt pseudocounts
