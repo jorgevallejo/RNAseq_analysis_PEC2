@@ -183,7 +183,12 @@ iii) examinar las rutas moleculares implicadas.
 
 # Materiales y métodos
 
-## Muestras y datos de origen
+## Datos de origen
+Originalmente, los datos brutos fueron obtenidos por RNA-seq y proceden del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Para este análisis, sin embargo, he trabajado con datos ya pre-procesados en forma de dos archivos con formato CSV. Estos archivos (counts.csv y targets.csv) se pueden encontrar en mi perfil de GitHub siguiendo XXXXeste enlaceXXXX.
+
+El archivo counts.csv contiene el número de cuentas detectadas para cada gen en cada muestra del estudio. Es una tabla en la que cada observación (fila) corresponde a un gen reconocido por el proyecto Ensembl, y cada variable (columna) a una de las muestras de tejido del estudio. A partir de los datos de este archivo podemos analizar la expresión de cada gen en cada muestra.
+
+El archivo targets.csv contiene información relevante acerca de cada muestra. Cada observación (fila) de la tabla corresponde a una muestra, y cada variable (columna) corresponde a una característica de la muestra como el código de identificación, el tejido de origen, el grupo experimental al que pertenece, o el sexo del sujeto del que procede la muestra.
 
 
 ## Diseño experimental
