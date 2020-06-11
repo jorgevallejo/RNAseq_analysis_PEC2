@@ -20,7 +20,7 @@ knit: (function(inputFile, encoding) {
 # And:
 # https://stackoverflow.com/a/46007686/10647267
 
-#bibliography: references.bib
+bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -190,10 +190,13 @@ El archivo counts.csv contiene el número de cuentas detectadas para cada gen en
 
 El archivo targets.csv contiene información relevante acerca de cada muestra. Cada observación (fila) de la tabla corresponde a una muestra, y cada variable (columna) corresponde a una característica de la muestra como el código de identificación, el tejido de origen, el grupo experimental al que pertenece, o el sexo del sujeto del que procede la muestra.
 
-
 ## Diseño experimental
 
+El total de muestras es de 292; divididas en 236 muestras del grupo NIT, 42 muestras del grupo SFI y 14 muestras del grupo ELI. Para este informe se nos pidió seleccionar 10 muestras, aleatoriamente, de cada grupo para trabajar sobre un total de 30 muestras.
 
+Debido a que los perfiles de expresión génica pueden variar según el sexo [@naqvi2019conservation], he seleccionado las muestras de tal forma que, dentro de cada grupo experimental, la cantidad de muestras provenientes de hembras sea la misma que de varones (ver sección ["Obtención de los datos en bruto"](#obtencion)).
+
+Como hay tres grupos, el análisis de expresión diferencial lo he efectuado sobre tres comparaciones: SFI-NIST, ELI-NIST y ELI-SFI.
 
 ## Procedimiento seguido en el análisis
 
@@ -209,8 +212,9 @@ Los pasos seguidos para realizar el presente análisis han sido los siguientes:
 8. Comparación entre comparaciones.  
 9. Análisis del enriquecimiento de rutas.
 
-### Obtención de los datos en bruto
+<a name="obtencion"></a>  
 
+### Obtención de los datos en bruto
 
 
 Los diferentes archivos con los datos en bruto han sido manipulados utilizando R para realizar los controles de calidad y los análisis propiamente dichos. El código completo usado puede consultarse en el apéndice A.
