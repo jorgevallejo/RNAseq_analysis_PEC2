@@ -38,7 +38,7 @@ knitr::opts_chunk$set(echo = FALSE,
 # 'intermediateData' contains .RData objects with processed data.
 # 'results' stores the final report files.
 
-directories <- c("data", "results", "intermediateData")
+directories <- c("data", "results", "intermediateData", "images")
 
 # Create directories
 lapply(directories, function(x){
@@ -54,7 +54,7 @@ lapply(directories, function(x){
 # Remember that the .RData files are there to
 # avoid unnecesarily redoing of long data processing.
 
-directories <- c("results/", "intermediateData/")
+directories <- c("results/", "intermediateData/", "images/")
 
 file.remove(
   # Create a character vector of relative paths
@@ -173,15 +173,22 @@ targets_sampled <- targets_sampled[order(targets_sampled$Group,
 
 \newpage
 # Abstract
-Análisis de expresión génica diferencial de un estudio obtenido del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Partimos de datos de expresión obtenidos por RNA-seq, pertenecientes a un análisis de muestras tiroides pertenecientes a tres grupos: NIT (_not infiltrated tissues_, tejidos no infiltrados), SFI (_small focal infiltrates_, infiltrados focales pequeños), y ELI (_extensive lymphoid infiltrates_, infiltrados linfoides amplios). Como resultado obtenemos listados de genes con expresión diferencial entre los diferentes grupos, y listados de términos GO sobrerrepresentados en dichos listados.
+**Análisis de expresión génica diferencial** de un estudio obtenido del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Partimos de datos de expresión obtenidos por **RNA-seq**, pertenecientes a un análisis de muestras tiroides pertenecientes a tres grupos: NIT (_not infiltrated tissues_, tejidos no infiltrados), SFI (_small focal infiltrates_, infiltrados focales pequeños), y ELI (_extensive lymphoid infiltrates_, infiltrados linfoides amplios). Como resultado hemos obtenido **listados de genes** con expresión diferencial entre los diferentes grupos, y **listados de términos GO** sobrerrepresentados en dichos listados.
 
 # Objetivos
-
-
+Los objetivos de este análisis son  
+i) averiguar los cambios de expresión génica en la tiroides entre situación de salud (NIT) y situación patológica (SFI y ELI),  
+ii) explorar los cambios en la expresión génica entre tejidos de tiroides en situación patológica más severa (ELI) y menos severa (SFI), y finalmente  
+iii) examinar las rutas moleculares implicadas.
 
 # Materiales y métodos
 
-## Muestras y datos de origen
+## Datos de origen
+Originalmente, los datos brutos fueron obtenidos por RNA-seq y proceden del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Para este análisis, sin embargo, he trabajado con datos ya pre-procesados en forma de dos archivos con formato CSV. Estos archivos (counts.csv y targets.csv) se pueden encontrar en mi perfil de GitHub siguiendo XXXXeste enlaceXXXX.
+
+El archivo counts.csv contiene el número de cuentas detectadas para cada gen en cada muestra del estudio. Es una tabla en la que cada observación (fila) corresponde a un gen reconocido por el proyecto Ensembl, y cada variable (columna) a una de las muestras de tejido del estudio. A partir de los datos de este archivo podemos analizar la expresión de cada gen en cada muestra.
+
+El archivo targets.csv contiene información relevante acerca de cada muestra. Cada observación (fila) de la tabla corresponde a una muestra, y cada variable (columna) corresponde a una característica de la muestra como el código de identificación, el tejido de origen, el grupo experimental al que pertenece, o el sexo del sujeto del que procede la muestra.
 
 
 ## Diseño experimental
@@ -218,6 +225,10 @@ En este caso hemos usado examinado los datos de expresión mediante diferenes re
 ```{r histogram raw counts}
 library(ggplot2)
 library(gridExtra)
+
+interfile <- "images/histo_pseudo.png"
+
+if (!(file.exists(interfile))){
 histo_counts <- ggplot(counts_subset,
        aes(x = counts_subset[, 1])) +
   geom_histogram(fill = "#525252", binwidth = 2000) + 
@@ -225,6 +236,7 @@ histo_counts <- ggplot(counts_subset,
        title = paste0("Muestra ", names(counts_subset)[1])) +
   scale_y_log10() + 
   coord_cartesian(xlim = c(0, 300000))
+}
 ```
 
 Como la distribución de las cuentas presenta una alta asimetría, hemos transformado los datos de cuentas en pseudocuentas (log_2(cuentas + 1)) para aproximar la distribución a la curva normal. Esta transformación ayudará a la visualización de los datos.
@@ -234,15 +246,28 @@ pseudoCounts <- log2(counts_subset + 1)
 ```
 
 ```{r histogram of pseudocounts}
+
+if (!(file.exists(interfile))){
 histo_pseudocounts <- ggplot(pseudoCounts,
        aes(x = pseudoCounts[, 1])) +
   geom_histogram(colour = "white", fill = "#525252", binwidth = 0.5) + 
   labs(x = "Pseudocuentas", y = "Frecuencia",
        title = paste0("Muestra ", names(counts_subset)[1]))
+}
 ```
 
 ```{r print histocounts and histopseudocounts, fig.cap='(izq.) Las cuentas de los genes en la muestra presentan una distribución fuertemente asimétrica hacia números bajos. La transformación en pseudocuentas (der.) produce un perfil de frecuencias más parecido a la distribución normal.'}
-grid.arrange(histo_counts, histo_pseudocounts, ncol = 2)
+
+interfile <- "images/histo_pseudo.png"
+
+#save grid of graphs
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile) # Draw image
+}else{
+histo_pseudo <- arrangeGrob(histo_counts, histo_pseudocounts, ncol = 2) # Generate grid
+ggsave(filename = interfile, histo_pseudo) # Save image
+knitr::include_graphics(interfile) # Draw image
+}
 
 # Remove big objects from environment
 rm(list = c("histo_counts", "histo_pseudocounts"))
@@ -255,11 +280,14 @@ Con los diagramas de cajas podemos observar y comparar la distribución de las p
 ```{r boxplots, fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
 library('reshape')
 
-if(file.exists("intermediateData/pseudoCounts_melted.RData")){
-  load("intermediateData/pseudoCounts_melted.RData")
+# Melt pseudocounts
+interfile <- "intermediateData/pseudoCounts_melted.RData"
+
+if(file.exists(interfile)){
+  load(interfile)
 }else{
   pseudoCounts_melted <- melt(pseudoCounts, variable_name = "Muestras")
-  save(pseudoCounts_melted, file = "intermediateData/pseudoCounts_melted.RData")
+  save(pseudoCounts_melted, file = interfile)
 }
 
 # Add experimental group to melted dataframe
@@ -267,7 +295,12 @@ pseudoCounts_melted <- data.frame(pseudoCounts_melted,
                                   Grupo = substr(pseudoCounts_melted$Muestras, 7, 9))
 
 # Draw boxplot of pseudocounts distribution
-ggplot(pseudoCounts_melted, aes(x = Muestras, y = value, fill = Grupo)) +
+interfile <- "images/pseudoCounts_boxplots.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+ boxplots <- ggplot(pseudoCounts_melted, aes(x = Muestras, y = value, fill = Grupo)) +
   geom_boxplot() +
   xlab("Muestras") +
   ylab(expression(log[2](count + 1))) +
@@ -275,7 +308,9 @@ ggplot(pseudoCounts_melted, aes(x = Muestras, y = value, fill = Grupo)) +
   scale_x_discrete(limits = targets_sampled$ShortName) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = rel(0.8)))
 
-# ggsave(filename = "pseudoCounts_boxplots.png")
+ ggsave(filename = interfile)
+ knitr::include_graphics(interfile)
+}
 ```
 
 #### Histogramas
@@ -283,12 +318,24 @@ ggplot(pseudoCounts_melted, aes(x = Muestras, y = value, fill = Grupo)) +
 Los histogramas nos ofrecen una perspectiva diferente sobre la distribución de las pseudocuentas, más detallada que los diagramas de cajas.
 
 ```{r histograms and density plots, fig.cap='Histogramas suavizados de densidades de pseudocuentas en cada muestra, separados por grupo experimental.'}
+
+interfile <- "images/histo_density.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+  # Generate histograms
 ggplot(pseudoCounts_melted, aes(x = value, colour = Muestras, fill = Muestras)) +
   ylim(c(0, 0.25)) +
   geom_density(alpha = 0.2, size = 0.25) +
   facet_wrap(~ Grupo) +
   theme(legend.position = "none") +
   xlab(expression(log[2](count + 1)))
+  # Save
+  ggsave(filename = interfile)
+  # Draw in document
+  knitr::include_graphics(interfile)
+}
 ```
 
 En general, el perfil de los histogramas es muy parecido para todas las muestras, y entre los diferentes grupos experimentales.
@@ -824,7 +871,19 @@ egoset <- gseGO(geneList = gse_genelist,
 ## Gráfico de barras
 ```{r enriquecimiento funcional barplot, fig.cap='Gráfico de barras para visualización de términos GO (componentes celulares) estadísticamente enriquecidos en la comparación NIT vs SFI. Se muestran los primeros veinte términos ordenados por p-valor ajustado en orden creciente.'}
 library('enrichplot')
+
+interfile <- "images/enri_barplot.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+  # Generate barplot
 barplot(ego, showCategory = 20)
+  # Save
+  ggsave(filename = interfile)
+  # Include in document
+  knitr::include_graphics(interfile)
+}
 ```
 
 ## Dot plot
