@@ -356,25 +356,19 @@ ggplot(pseudoCounts_melted, aes(x = value, colour = Muestras, fill = Muestras)) 
 }
 ```
 
-En general, el perfil de los histogramas es muy parecido para todas las muestras, y entre los diferentes grupos experimentales.
+En general, el perfil de los histogramas es muy parecido para todas las muestras y entre los diferentes grupos experimentales.
+\newpage
 
 #### Mapa de calor
 Los mapas de calor ayudan a explorar los parecidos y diferencias entre muestras. Mediante colores que representan las distancias entre muestras, y agrupando jerárquicamente muestras según su similaridad.
 
-```{r heatmap of sample-to-sample distance}
+```{r heatmap of sample-to-sample distance, out.width='75%'}
 mat.dist <- as.matrix(dist(t(pseudoCounts)))
 mat.dist <- mat.dist/max(mat.dist)
 
 library('RColorBrewer')
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(255)
-# library('mixOmics')
-# cim(mat.dist, color = rev(hmcol), symkey = FALSE, margin = c(9, 9),
-#     save='jpeg')
-# library('OpenImageR')
-# imageShow("cim_mat_dist.jpeg")
-# heatmap(mat.dist, symm = FALSE,
-#         cexRow = 0.8, cexCol = 0.8,
-#         col = rev(hmcol))
+
 ```
 ```{r heatmap 2, fig.cap='Mapa de calor de la distancia relativa entre muestras. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
 library(gplots)
@@ -415,6 +409,7 @@ legend("left", # Position of the legend in the graph
 ```
 
 Por lo que podemos ver en el mapa de calor, la mayor parte de las muestras del grupo ELI (infiltraciones amplias) se agrupan entre ellas (aunque en dos grupos diferentes), mientras que el resto de agrupaciones son mezclas de muestras de los grupos SFI (infiltraciones pequeñas) y NIT (sin infiltraciones).
+\newpage
 
 #### Análisis de componentes principales de las muestras
 
@@ -422,7 +417,7 @@ Por lo que podemos ver en el mapa de calor, la mayor parte de las muestras del g
 
 Al aplicar el análisis sobre nuestros datos, esperamos que las muestras se agrupen por grupo experimental y, probablemente, por sexo.
 
-```{r plot PCA, fig.cap='Análisis de componentes principales. PC1: Fuente principal de variabilidad entre muestras. Parece corresponder al grupo experimental. PC2: Segunda mayor fuente de variabilidad entre muestras. Separa claramente las muestras de hembras y varones.'}
+```{r plot PCA, out.width='50%', fig.cap='Análisis de componentes principales. PC1: Fuente principal de variabilidad entre muestras. Parece corresponder al grupo experimental. PC2: Segunda mayor fuente de variabilidad entre muestras. Separa claramente las muestras de hembras y varones.'}
 library('DESeq2')
 library('Biobase')
 
