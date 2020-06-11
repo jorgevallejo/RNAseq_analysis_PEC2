@@ -545,6 +545,7 @@ ggsave(interfile, variabilidad)
 knitr::include_graphics(interfile)
 }
 ```
+\newpage
 
 ### Distancia entre muestras
 
@@ -553,7 +554,7 @@ Con los datos transformados (normalización y estabilización de varianza), volv
 
 #### Mapa de calor
 
-Mediante un mapa de calor podemos qué muestras se parecen más entre ellas. Esperamos que muestras del mismo grupo experimental se agrupen entre ellas.
+Mediante un mapa de calor podemos qué muestras se parecen más entre ellas. Esperamos que muestras del mismo grupo experimental se agrupen entre sí.
 
 ```{r heatmap of sample-to-sample distance with transformed data}
 # Calculate distance matrix
@@ -564,7 +565,7 @@ mat.dist <- mat.dist/max(mat.dist)
 library('RColorBrewer')
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(255)
 ```
-```{r draw heatmap transformed data, fig.cap='Mapa de calor de la distancia relativa entre muestras, a partir de datos transformados. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
+```{r draw heatmap transformed data, out.width='75%', fig.cap='Mapa de calor de la distancia relativa entre muestras, a partir de datos transformados. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
 
 heatmap.2(mat.dist,
           Rowv = TRUE,
@@ -606,7 +607,7 @@ La mayor parte de las muestras del grupo ELI (infiltraciones amplias) se reúnen
 
 ### Análisis de componentes principales
 
-```{r PCA plot con datos VST, fig.cap='Gráfica de análisis de componentes principales. Cada marca representa una muestra, codificada según el grupo experimental al que pertence (color) y el sexo (forma).'}
+```{r PCA plot con datos VST, out.width='50%', fig.cap='Gráfica de análisis de componentes principales. Cada marca representa una muestra, codificada según el grupo experimental al que pertence (color) y el sexo (forma).'}
 # DESeq2::plotPCA(vsd, intgroup = c("Group", "sex"))
 pcaData <- plotPCA(vsd, intgroup=c("Group", "sex"), returnData=TRUE)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
