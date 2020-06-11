@@ -461,7 +461,7 @@ Genes filtrados:`r  format(genes_total - genes_postfilter, big.mark = " ")`
 ```{r remove unnecesary varibles from environment}
 rm(list = c("genes_total", "genes_postfilter"))
 ```
-
+\newpage
 
 ### Transformación de los datos: normalización
 
@@ -486,8 +486,13 @@ if (file.exists("intermediateData/ddsMat_sizeFactors.RData")){
 }
 ```
 
-```{r inspect size factors, eval=FALSE}
-kable(sizeFactors(ddsMat))
+```{r inspect size factors}
+kable(as.data.frame(cbind(Muestras = names(sizeFactors(ddsMat)),
+                    Factores = round(sizeFactors(ddsMat), digits = 4),
+                    row.names = NULL),
+      row.names = FALSE,
+      caption = 'Factores de normalización aplicados a cada muestra (redondeados a 4 dígitos). Obsérvese que ninguno de los factores se aleja excesivamente de la unidad, lo que apunta a que ninguna de las muestras estudiadas tiene una profundidad de lectura muy alejada del resto.',
+      align = 'rl'))
 ```
 
 ### Transformación de los datos: estabilización de la varianza
