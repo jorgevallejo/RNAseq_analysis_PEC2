@@ -622,12 +622,17 @@ Al igual que observamos con los datos sin transformar, la mayor parte de la vari
 
 ### Identificación de genes diferencialmente expresados
 
-Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo de un factor con tres niveles, siendo esos niveles los grupos a los que está asignada cada muestra:  
-`r unique(targets$Group)`
+Después de explorar los datos para comprender su estructura, realizar análisis de calidad, normalizar los datos de expresión, estabilizar la varianza, y filtrar los genes menos informativos; llega el momento de analizar qué genes se expresan de forma diferente entre los diferentes grupos experimentales.
+
+Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo lineal de dos factores ( _grupo experimental_ y _sexo_ ). El factor _sexo_ con dos niveles: _varón_ y _hembra_. El factor _grupo experimental_, con tres niveles ( _NIT_, _SFI_ y _ELI_ ), se ha considerado como factor principal.
+
+Así, la fórmula para el modelo lineal toma la forma: $cuentas = sexo + \textit{grupo experimental}$
+
+El análisis estadístico se ha llevado a cabo mediante la función `DESeq()` del paquete _DESeq2_ de Bioconductor, que realiza una estimación de los factores de tamaño, estimación de la dispersión, y ajuste al modelo lineal generalizado (GLM) usando la distribución binomial negativa.
 
 ```{r differential expression analysis}
 # Remove large unnecesary objects from environment
-rm(vsd)
+rm(list=c("vsd", "expSet"))
 
 # Differential expression analysis parallelized
 if(file.exists("intermediateData/ddsMat_dea.RData")){
@@ -638,19 +643,45 @@ if(file.exists("intermediateData/ddsMat_dea.RData")){
 }
 ```
 
-```{r leg2 fold change NIT vs SFI}
-res_NITvSFI <- results(ddsMat, 
-               contrast = c("Group", "NIT", "SFI")) # NIT is numerator in fold change
+Como resultado del análisis estadístico obtenemos, para cada comparación entre grupos, los cambios relativos de expresión en cada gen (log2 fold change) y el p-valor ajustado que nos informa acerca de la significatividad de ese cambio.
+
+```{r leg2 fold changes}
+interfile <- "intermediateData/leg2_fold_changes.RData"
+
+if(file.exists(interfile)){
+  load(interfile)
+}else{
+# SFI-NIT
+res_SFIvsNIT <- results(ddsMat, 
+               contrast = c("Group", "SFI", "NIT")) # SFI is numerator in fold change
+
+# ELI-NIT
+res_ELIvsNIT <- results(ddsMat, 
+               contrast = c("Group", "ELI", "NIT")) # ELI is numerator in fold change
+
+# ELI-SFI
+res_ELIvsSFI <- results(ddsMat, 
+               contrast = c("Group", "ELI", "SFI")) # ELI is numerator in fold change
+
+save(list = c("res_SFIvsNIT", "res_ELIvsNIT", "res_ELIvsSFI"),
+     file = interfile)
+}
+
+
 # res_NITvSFI
 ```
 
 ```{r meaning of the columns, eval=FALSE}
-mcols(res, use.names = TRUE)
+mcols(res_SFIvsNIT, use.names = TRUE)
 ```
 
-```{r summarize the results}
-summary(res_NITvSFI)
+```{r summarize the results, eval=FALSE}
+summary(res_SFIvsNIT)
 ```
+
+Como ejemplo, mostramos aquí los diez genes con menor p-valor ajustado de la comparación SFI-NIT:
+
+
 
 ```{r display log fold changes versus expression strength, fig.cap='Gráfica mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1'}
 plotMA(res_NITvSFI)
