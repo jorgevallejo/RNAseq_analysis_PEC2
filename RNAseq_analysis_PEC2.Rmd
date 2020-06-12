@@ -99,7 +99,7 @@ El total de muestras es de 292; divididas en 236 muestras del grupo NIT, 42 mues
 
 Debido a que los perfiles de expresión génica pueden variar según el sexo [@naqvi2019conservation], he seleccionado las muestras de tal forma que, dentro de cada grupo experimental, la cantidad de muestras provenientes de hembras sea la misma que de varones (ver sección ["Obtención de los datos en bruto"](#obtencion)).
 
-Como hay tres grupos, el análisis de expresión diferencial lo he efectuado sobre tres comparaciones: SFI-NIST, ELI-NIST y ELI-SFI.
+Como hay tres grupos, el análisis de expresión diferencial lo he efectuado sobre tres comparaciones: SFI-NIT, ELI-NIT y ELI-SFI.
 
 ## Procedimiento seguido en el análisis
 
