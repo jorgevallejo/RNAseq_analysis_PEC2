@@ -679,8 +679,20 @@ mcols(res_SFIvsNIT, use.names = TRUE)
 summary(res_SFIvsNIT)
 ```
 
-Como ejemplo, mostramos aquí los diez genes con menor p-valor ajustado de la comparación SFI-NIT:
+Como ejemplo, mostramos aquí los seis genes con menor p-valor ajustado de la comparación SFI-NIT:
 
+```{r example table of differentially expressed genes}
+# Order by adjusted p-value
+res_SFIvsNIT_trimmed <- res_SFIvsNIT[!is.na(res_SFIvsNIT$padj) & # Takes care of NA values
+                                     res_SFIvsNIT$padj < 0.1 # FDR < 10%
+                                     , c(2, 6)] # Columns log2FC and p.adusted
+
+knitr::kable(head(res_SFIvsNIT_trimmed[order(res_SFIvsNIT_trimmed$padj), ]),
+             col.names = c("log2FC", "p-valor ajustado"),
+             align = 'cc',
+             digits = c(2, 4),
+             caption = 'Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el valor log2FC y el código ENSEMBL del gen. FDR < 10%.')
+```
 
 
 ```{r display log fold changes versus expression strength, fig.cap='Gráfica mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1'}
