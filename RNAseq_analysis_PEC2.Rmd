@@ -20,7 +20,7 @@ knit: (function(inputFile, encoding) {
 # And:
 # https://stackoverflow.com/a/46007686/10647267
 
-#bibliography: references.bib
+bibliography: references.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -72,6 +72,67 @@ library(knitr)
 
 ```
 
+
+
+\newpage
+# Abstract
+**Análisis de expresión génica diferencial** de un estudio obtenido del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Partimos de datos de expresión obtenidos por **RNA-seq**, pertenecientes a un análisis de muestras tiroides pertenecientes a tres grupos: NIT (_not infiltrated tissues_, tejidos no infiltrados), SFI (_small focal infiltrates_, infiltrados focales pequeños), y ELI (_extensive lymphoid infiltrates_, infiltrados linfoides amplios). Como resultado hemos obtenido **listados de genes** con expresión diferencial entre los diferentes grupos, y **listados de términos GO** sobrerrepresentados en dichos listados.
+
+# Objetivos
+Los objetivos de este análisis son  
+i) averiguar los cambios de expresión génica en la tiroides entre situación de salud (NIT) y situación patológica (SFI y ELI),  
+ii) explorar los cambios en la expresión génica entre tejidos de tiroides en situación patológica más severa (ELI) y menos severa (SFI), y finalmente  
+iii) examinar las rutas moleculares implicadas.
+
+# Materiales y métodos
+
+## Datos de origen
+Originalmente, los datos brutos fueron obtenidos por RNA-seq y proceden del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Para este análisis, sin embargo, he trabajado con datos ya pre-procesados en forma de dos archivos con formato CSV. Estos archivos (counts.csv y targets.csv) se pueden encontrar en mi perfil de GitHub siguiendo XXXXeste enlaceXXXX.
+
+El archivo counts.csv contiene el número de cuentas detectadas para cada gen en cada muestra del estudio. Es una tabla en la que cada observación (fila) corresponde a un gen reconocido por el proyecto Ensembl, y cada variable (columna) a una de las muestras de tejido del estudio. A partir de los datos de este archivo podemos analizar la expresión de cada gen en cada muestra.
+
+El archivo targets.csv contiene información relevante acerca de cada muestra. Cada observación (fila) de la tabla corresponde a una muestra, y cada variable (columna) corresponde a una característica de la muestra como el código de identificación, el tejido de origen, el grupo experimental al que pertenece, o el sexo del sujeto del que procede la muestra.
+
+## Diseño experimental
+
+El total de muestras es de 292; divididas en 236 muestras del grupo NIT, 42 muestras del grupo SFI y 14 muestras del grupo ELI. Para este informe se nos pidió seleccionar 10 muestras, aleatoriamente, de cada grupo para trabajar sobre un total de 30 muestras.
+
+Debido a que los perfiles de expresión génica pueden variar según el sexo [@naqvi2019conservation], he seleccionado las muestras de tal forma que, dentro de cada grupo experimental, la cantidad de muestras provenientes de hembras sea la misma que de varones (ver sección ["Obtención de los datos en bruto"](#obtencion)).
+
+Como hay tres grupos, el análisis de expresión diferencial lo he efectuado sobre tres comparaciones: SFI-NIT, ELI-NIT y ELI-SFI.
+
+## Procedimiento seguido en el análisis
+
+Los pasos seguidos para realizar el presente análisis han sido los siguientes: 
+
+1. Obtención de los datos de expresión en bruto.  
+2. Control de calidad de los datos.  
+3. Normalización.  
+4. Filtraje no específico.  
+5. Identificación de genes diferencialmente expresados.  
+6. Anotación de los resultados.  
+7. Comparación entre comparaciones.  
+8. Análisis del enriquecimiento de rutas.
+
+<a name="obtencion"></a>  
+
+### Obtención de los datos en bruto
+
+Como se ha señalado anteriormente, hemos recibido dos archivos con formato CSV conteniendo los datos pre-procesados de 292 muestras, de las cuales debíamos seleccionar al azar 10 de cada grupo experimental (en total 30 muestras).
+
+Para seleccionar las muestras al azar, he dividido primero el total de muestras por grupos experimentales (NIT, SFI y ELI), y cada grupo lo he dividido por sexos (varón y hembra). De cada uno de esos grupos (NIT-varones, NIT-hembras, SFI-varones, etc.) he elegido al azar 5 muestras para un total de 30 muestras sobre las que realizar el informe.
+```{r samples table}
+groups <- c("NIT", "SFI", "ELI")
+
+knitr::kable(as.data.frame(matrix(rep(5, times=6), nrow = 3, ncol = 2),
+                     row.names = groups),
+col.names= c("varones", "hembras"),
+align = 'c', caption = "Distribución de la cantidad de muestras en este informe.")
+
+```
+
+Todo el trabajo de selección y procesado de datos, y los análisis estadísticos, han sido realizados con el lenguaje de programación R. El entorno de desarrollo ha sido RStudio. Muchos de los paquetes usados como extensión de R han sido obtenidos de Bioconductor, con especial relevancia para este informe del paquete DESeq2. El listado completo de los paquetes usados y sus versiones se puede leer en el [apéndice B](#apendiceB). El código utilizado para la manipulación de datos, y la composición de este informe, así como los archivos con los datos; puede consultarse en mi página de Github: [https://github.com/jorgevallejo/RNAseq_analysis_PEC2](https://github.com/jorgevallejo/RNAseq_analysis_PEC2)
+
 ```{r read data into R}
 # Read targets
 targets <- read.csv("data/targets.csv", stringsAsFactors = FALSE)
@@ -108,7 +169,6 @@ str(counts)
 # Take 10 samples from each group at random
 set.seed(50110528)
 
-groups <- c("NIT", "SFI", "ELI")
 
 # Function for the stratified sampling
 sampler <- function (targets, groups){
@@ -171,50 +231,6 @@ targets_sampled <- targets_sampled[order(targets_sampled$Group,
                                          targets_sampled$ShortName), ]
 ```
 
-\newpage
-# Abstract
-**Análisis de expresión génica diferencial** de un estudio obtenido del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Partimos de datos de expresión obtenidos por **RNA-seq**, pertenecientes a un análisis de muestras tiroides pertenecientes a tres grupos: NIT (_not infiltrated tissues_, tejidos no infiltrados), SFI (_small focal infiltrates_, infiltrados focales pequeños), y ELI (_extensive lymphoid infiltrates_, infiltrados linfoides amplios). Como resultado hemos obtenido **listados de genes** con expresión diferencial entre los diferentes grupos, y **listados de términos GO** sobrerrepresentados en dichos listados.
-
-# Objetivos
-Los objetivos de este análisis son  
-i) averiguar los cambios de expresión génica en la tiroides entre situación de salud (NIT) y situación patológica (SFI y ELI),  
-ii) explorar los cambios en la expresión génica entre tejidos de tiroides en situación patológica más severa (ELI) y menos severa (SFI), y finalmente  
-iii) examinar las rutas moleculares implicadas.
-
-# Materiales y métodos
-
-## Datos de origen
-Originalmente, los datos brutos fueron obtenidos por RNA-seq y proceden del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Para este análisis, sin embargo, he trabajado con datos ya pre-procesados en forma de dos archivos con formato CSV. Estos archivos (counts.csv y targets.csv) se pueden encontrar en mi perfil de GitHub siguiendo XXXXeste enlaceXXXX.
-
-El archivo counts.csv contiene el número de cuentas detectadas para cada gen en cada muestra del estudio. Es una tabla en la que cada observación (fila) corresponde a un gen reconocido por el proyecto Ensembl, y cada variable (columna) a una de las muestras de tejido del estudio. A partir de los datos de este archivo podemos analizar la expresión de cada gen en cada muestra.
-
-El archivo targets.csv contiene información relevante acerca de cada muestra. Cada observación (fila) de la tabla corresponde a una muestra, y cada variable (columna) corresponde a una característica de la muestra como el código de identificación, el tejido de origen, el grupo experimental al que pertenece, o el sexo del sujeto del que procede la muestra.
-
-
-## Diseño experimental
-
-
-
-## Procedimiento seguido en el análisis
-
-Los pasos seguidos para realizar el presente análisis han sido los siguientes: 
-
-1. Obtenión de los datos de expresión en bruto.  
-2. Control de calidad de los datos brutos.  
-3. Normalización.  
-4. Control de calidad de los datos normalizados.  
-5. Filtraje no específico.  
-6. Identificación de genes diferencialmente expresados.  
-7. Anotación de los resultados.  
-8. Comparación entre comparaciones.  
-9. Análisis del enriquecimiento de rutas.
-
-### Obtención de los datos en bruto
-
-
-
-Los diferentes archivos con los datos en bruto han sido manipulados utilizando R para realizar los controles de calidad y los análisis propiamente dichos. El código completo usado puede consultarse en el apéndice A.
-
 ### Control de calidad de los datos
 Con el control de calidad pretendemos averiguar si los datos de alguna de las muestras presentan defectos o sesgos que desaconsejen usarlos, antes de continuar con el análisis.
 
@@ -239,7 +255,7 @@ histo_counts <- ggplot(counts_subset,
 }
 ```
 
-Como la distribución de las cuentas presenta una alta asimetría, hemos transformado los datos de cuentas en pseudocuentas (log_2(cuentas + 1)) para aproximar la distribución a la curva normal. Esta transformación ayudará a la visualización de los datos.
+Como la distribución de las cuentas presenta una alta asimetría, hemos transformado los datos de cuentas en pseudocuentas (log~2~(cuentas + 1)) para aproximar la distribución a la curva normal. Esta transformación ayudará a la visualización de los datos.
 
 ```{r transform count data to log2}
 pseudoCounts <- log2(counts_subset + 1)
@@ -256,7 +272,7 @@ histo_pseudocounts <- ggplot(pseudoCounts,
 }
 ```
 
-```{r print histocounts and histopseudocounts, fig.cap='(izq.) Las cuentas de los genes en la muestra presentan una distribución fuertemente asimétrica hacia números bajos. La transformación en pseudocuentas (der.) produce un perfil de frecuencias más parecido a la distribución normal.'}
+```{r print histocounts and histopseudocounts, out.width='75%', fig.cap='(izq.) Las cuentas de los genes en la muestra presentan una distribución fuertemente asimétrica hacia números bajos. La transformación en pseudocuentas (der.) produce un perfil de frecuencias más parecido a la distribución normal.'}
 
 interfile <- "images/histo_pseudo.png"
 
@@ -272,12 +288,12 @@ knitr::include_graphics(interfile) # Draw image
 # Remove big objects from environment
 rm(list = c("histo_counts", "histo_pseudocounts"))
 ```
+\newpage
 
+#### Distribución de pseudocuentas por muestra (diagramas de cajas)
+Con los diagramas de cajas podemos observar y comparar la distribución de las pseudocuentas en las diferentes muestras. Esto comprobar si alguna de las muestras presenta una distribución radicalmente distinta del resto, lo que sería señal de algún error o problema con esa muestra:
 
-#### Diagramas de cajas
-Con los diagramas de cajas podemos observar y comparar la distribución de las pseudocuentas en las diferentes muestras:
-
-```{r boxplots, fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
+```{r boxplots, out.width='75%', fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
 library('reshape')
 
 # Melt pseudocounts
@@ -312,12 +328,13 @@ if(file.exists(interfile)){
  knitr::include_graphics(interfile)
 }
 ```
+\newpage
 
-#### Histogramas
+#### Distribución de pseudocuentas por muestra (histogramas de densidad)
 
 Los histogramas nos ofrecen una perspectiva diferente sobre la distribución de las pseudocuentas, más detallada que los diagramas de cajas.
 
-```{r histograms and density plots, fig.cap='Histogramas suavizados de densidades de pseudocuentas en cada muestra, separados por grupo experimental.'}
+```{r histograms and density plots, out.width='75%', fig.cap='Histogramas suavizados de densidades de pseudocuentas en cada muestra, separados por grupo experimental.'}
 
 interfile <- "images/histo_density.png"
 
@@ -328,9 +345,10 @@ if(file.exists(interfile)){
 ggplot(pseudoCounts_melted, aes(x = value, colour = Muestras, fill = Muestras)) +
   ylim(c(0, 0.25)) +
   geom_density(alpha = 0.2, size = 0.25) +
-  facet_wrap(~ Grupo) +
+  facet_wrap(~ Grupo, dir = 'v') +
   theme(legend.position = "none") +
   xlab(expression(log[2](count + 1)))
+  #theme(aspect.ratio = 1) # makes the different graphs into squares
   # Save
   ggsave(filename = interfile)
   # Draw in document
@@ -338,25 +356,19 @@ ggplot(pseudoCounts_melted, aes(x = value, colour = Muestras, fill = Muestras)) 
 }
 ```
 
-En general, el perfil de los histogramas es muy parecido para todas las muestras, y entre los diferentes grupos experimentales.
+En general, el perfil de los histogramas es muy parecido para todas las muestras y entre los diferentes grupos experimentales.
+\newpage
 
 #### Mapa de calor
 Los mapas de calor ayudan a explorar los parecidos y diferencias entre muestras. Mediante colores que representan las distancias entre muestras, y agrupando jerárquicamente muestras según su similaridad.
 
-```{r heatmap of sample-to-sample distance}
+```{r heatmap of sample-to-sample distance, out.width='75%'}
 mat.dist <- as.matrix(dist(t(pseudoCounts)))
 mat.dist <- mat.dist/max(mat.dist)
 
 library('RColorBrewer')
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(255)
-# library('mixOmics')
-# cim(mat.dist, color = rev(hmcol), symkey = FALSE, margin = c(9, 9),
-#     save='jpeg')
-# library('OpenImageR')
-# imageShow("cim_mat_dist.jpeg")
-# heatmap(mat.dist, symm = FALSE,
-#         cexRow = 0.8, cexCol = 0.8,
-#         col = rev(hmcol))
+
 ```
 ```{r heatmap 2, fig.cap='Mapa de calor de la distancia relativa entre muestras. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
 library(gplots)
@@ -397,6 +409,7 @@ legend("left", # Position of the legend in the graph
 ```
 
 Por lo que podemos ver en el mapa de calor, la mayor parte de las muestras del grupo ELI (infiltraciones amplias) se agrupan entre ellas (aunque en dos grupos diferentes), mientras que el resto de agrupaciones son mezclas de muestras de los grupos SFI (infiltraciones pequeñas) y NIT (sin infiltraciones).
+\newpage
 
 #### Análisis de componentes principales de las muestras
 
@@ -404,7 +417,7 @@ Por lo que podemos ver en el mapa de calor, la mayor parte de las muestras del g
 
 Al aplicar el análisis sobre nuestros datos, esperamos que las muestras se agrupen por grupo experimental y, probablemente, por sexo.
 
-```{r plot PCA, fig.cap='Análisis de componentes principales. PC1: Fuente principal de variabilidad entre muestras. Parece corresponder al grupo experimental. PC2: Segunda mayor fuente de variabilidad entre muestras. Separa claramente las muestras de hembras y varones.'}
+```{r plot PCA, out.width='50%', fig.cap='Análisis de componentes principales. PC1: Fuente principal de variabilidad entre muestras. Parece corresponder al grupo experimental. PC2: Segunda mayor fuente de variabilidad entre muestras. Separa claramente las muestras de hembras y varones.'}
 library('DESeq2')
 library('Biobase')
 
@@ -448,7 +461,7 @@ Genes filtrados:`r  format(genes_total - genes_postfilter, big.mark = " ")`
 ```{r remove unnecesary varibles from environment}
 rm(list = c("genes_total", "genes_postfilter"))
 ```
-
+\newpage
 
 ### Transformación de los datos: normalización
 
@@ -473,9 +486,16 @@ if (file.exists("intermediateData/ddsMat_sizeFactors.RData")){
 }
 ```
 
-```{r inspect size factors, eval=FALSE}
-kable(sizeFactors(ddsMat))
+```{r inspect size factors}
+kable(as.data.frame(cbind(Muestras = names(sizeFactors(ddsMat)),
+                    Factores = round(sizeFactors(ddsMat), digits = 4))),
+      row.names = FALSE,
+      caption = 'Factores de normalización aplicados a cada muestra (redondeados a 4 dígitos).',
+      align = 'rl')
 ```
+
+Obsérvese que ninguno de los factores se aleja excesivamente de la unidad, lo que apunta a que ninguna de las muestras estudiadas tiene una profundidad de lectura muy alejada del resto.
+\newpage
 
 ### Transformación de los datos: estabilización de la varianza
 
@@ -507,13 +527,25 @@ df <- bind_rows(
   as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst")
 )
 ```
-```{r variabilidad expresion en dos muestras, fig.cap='La mayor variabilidad en la expresión génica se encuentra en aquellos genes con menos cuentas. La transformación estabilizadora de varianza (VST) elimina dicha variabilidad.'}
+```{r variabilidad expresion en dos muestras, out.width='50%', fig.cap='La mayor variabilidad en la expresión génica se encuentra en aquellos genes con menos cuentas. La transformación estabilizadora de varianza (VST) elimina dicha variabilidad.'}
 library('ggplot2')
-colnames(df)[1:2] <- c("muestra_1", "muestra_2")
 
-ggplot(df, aes(x= muestra_1, y = muestra_2)) + geom_hex(bins = 80) +
+interfile <- "images/variabilidad.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+colnames(df)[1:2] <- c("muestra_1", "muestra_2")
+# Generate plot
+variabilidad <- ggplot(df, aes(x= muestra_1, y = muestra_2)) + geom_hex(bins = 80) +
   coord_fixed() + facet_grid(. ~ transformation)
+# Save plot
+ggsave(interfile, variabilidad)
+# Draw plot
+knitr::include_graphics(interfile)
+}
 ```
+\newpage
 
 ### Distancia entre muestras
 
@@ -522,7 +554,7 @@ Con los datos transformados (normalización y estabilización de varianza), volv
 
 #### Mapa de calor
 
-Mediante un mapa de calor podemos qué muestras se parecen más entre ellas. Esperamos que muestras del mismo grupo experimental se agrupen entre ellas.
+Mediante un mapa de calor podemos qué muestras se parecen más entre ellas. Esperamos que muestras del mismo grupo experimental se agrupen entre sí.
 
 ```{r heatmap of sample-to-sample distance with transformed data}
 # Calculate distance matrix
@@ -533,7 +565,7 @@ mat.dist <- mat.dist/max(mat.dist)
 library('RColorBrewer')
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(255)
 ```
-```{r draw heatmap transformed data, fig.cap='Mapa de calor de la distancia relativa entre muestras, a partir de datos transformados. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
+```{r draw heatmap transformed data, out.width='75%', fig.cap='Mapa de calor de la distancia relativa entre muestras, a partir de datos transformados. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
 
 heatmap.2(mat.dist,
           Rowv = TRUE,
@@ -575,7 +607,7 @@ La mayor parte de las muestras del grupo ELI (infiltraciones amplias) se reúnen
 
 ### Análisis de componentes principales
 
-```{r PCA plot con datos VST, fig.cap='Gráfica de análisis de componentes principales. Cada marca representa una muestra, codificada según el grupo experimental al que pertence (color) y el sexo (forma).'}
+```{r PCA plot con datos VST, out.width='50%', fig.cap='Gráfica de análisis de componentes principales. Cada marca representa una muestra, codificada según el grupo experimental al que pertence (color) y el sexo (forma).'}
 # DESeq2::plotPCA(vsd, intgroup = c("Group", "sex"))
 pcaData <- plotPCA(vsd, intgroup=c("Group", "sex"), returnData=TRUE)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
@@ -911,6 +943,8 @@ cnetplot(egox, categorySize = 'pvalue')
 
 El documento original en formato .Rmd, que incluye el código completo en lenguaje R usado para generar este informe, se puede consultar y descargar en el siguiente repositorio de Github:
 []()
+
+<a name="apendiceB"></a>
 
 # Apéndice B: Reproducibilidad
 ```{r session_info, include=TRUE, echo=TRUE, results='markup'}
