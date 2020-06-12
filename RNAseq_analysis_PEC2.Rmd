@@ -620,15 +620,16 @@ ggplot(pcaData, aes(PC1, PC2, color=Group, shape=sex)) +
 
 Al igual que observamos con los datos sin transformar, la mayor parte de la varianza parece deberse al grupo experimental, con las muestras del grupo ELI en su mayoría reúnidas a la izquierda del gráfico, las muestras NIT a la derecha, y las muestras SFI entremezcladas con ambos grupos formando una suerte de puente. La aportación a la varianza por sexos sigue siendo clara, con las muestras procedentes de varones en la zona superior y las de hembras en la inferior.
 
-### Identificación de genes diferencialmente expresados
+# Identificación de genes diferencialmente expresados
 
-Después de explorar los datos para comprender su estructura, realizar análisis de calidad, normalizar los datos de expresión, estabilizar la varianza, y filtrar los genes menos informativos; llega el momento de analizar qué genes se expresan de forma diferente entre los diferentes grupos experimentales.
+Después de explorar los datos para comprender su estructura, realizar análisis de calidad, normalizar los datos de expresión, estabilizar la varianza, y filtrar los genes menos informativos; llega el momento de analizar qué genes se expresan de forma diferente entre los grupos experimentales.
 
-Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo lineal de dos factores ( _grupo experimental_ y _sexo_ ). El factor _sexo_ con dos niveles: _varón_ y _hembra_. El factor _grupo experimental_, con tres niveles ( _NIT_, _SFI_ y _ELI_ ), se ha considerado como factor principal.
+Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un **modelo lineal** de dos factores ( _grupo experimental_ y _sexo_ ). El factor _sexo_ con dos niveles: _varón_ y _hembra_. El factor _grupo experimental_, con tres niveles ( _NIT_, _SFI_ y _ELI_ ), se ha considerado como **factor principal**.
 
-Así, la fórmula para el modelo lineal toma la forma: $cuentas = sexo + \textit{grupo experimental}$
+Así, la **fórmula** para el modelo lineal toma el siguiente aspecto:  
+$cuentas = sexo + \textit{grupo experimental}$
 
-El análisis estadístico se ha llevado a cabo mediante la función `DESeq()` del paquete _DESeq2_ de Bioconductor, que realiza una estimación de los factores de tamaño, estimación de la dispersión, y ajuste al modelo lineal generalizado (GLM) usando la distribución binomial negativa.
+El **análisis estadístico** se ha llevado a cabo mediante la función `DESeq()` del paquete _DESeq2_ de Bioconductor [@love2014moderated], que realiza una estimación de los factores de tamaño, estimación de la dispersión, y ajuste al modelo lineal generalizado (GLM) usando la distribución binomial negativa.
 
 ```{r differential expression analysis}
 # Remove large unnecesary objects from environment
@@ -643,7 +644,7 @@ if(file.exists("intermediateData/ddsMat_dea.RData")){
 }
 ```
 
-Como resultado del análisis estadístico obtenemos, para cada comparación entre grupos, los cambios relativos de expresión en cada gen (log2 fold change) y el p-valor ajustado que nos informa acerca de la significatividad de ese cambio.
+Como resultado del análisis estadístico obtenemos, para cada comparación entre grupos, los **cambios relativos de expresión** en cada gen (log2 fold change) y el **p-valor ajustado** que nos informa acerca de la significatividad estadística de ese cambio.
 
 ```{r leg2 fold changes}
 interfile <- "intermediateData/leg2_fold_changes.RData"
@@ -691,7 +692,7 @@ knitr::kable(head(res_SFIvsNIT_trimmed[order(res_SFIvsNIT_trimmed$padj), ]),
              col.names = c("log2FC", "p-valor ajustado"),
              align = 'cc',
              digits = c(2, 4),
-             caption = 'Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el valor log2FC y el código ENSEMBL del gen. FDR < 10%.')
+             caption = 'Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el valor log2FC y el código ENSEMBL del gen.')
 ```
 
 
