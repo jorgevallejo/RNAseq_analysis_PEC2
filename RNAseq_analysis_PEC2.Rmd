@@ -668,7 +668,7 @@ save(list = c("res_SFIvsNIT", "res_ELIvsNIT", "res_ELIvsSFI"),
 }
 
 
-# res_NITvSFI
+# res_SFIvsNIT
 ```
 
 ```{r meaning of the columns, eval=FALSE}
@@ -696,18 +696,18 @@ knitr::kable(head(res_SFIvsNIT_trimmed[order(res_SFIvsNIT_trimmed$padj), ]),
 
 
 ```{r display log fold changes versus expression strength, fig.cap='Gráfica mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1'}
-plotMA(res_NITvSFI)
+plotMA(res_SFIvsNIT)
 ```
 
 Si consideramos aceptable una fracción de falsos positivos del 10%, podemos considerar como significativos todos aquellos genes con un p-valor ajustado por debajo de 0.1:
 ```{r genes con p valor ajustado menor de 0.1}
-sum(res_NITvSFI$padj < 0.1, na.rm=TRUE)
+sum(res_SFIvsNIT$padj < 0.1, na.rm=TRUE)
 ```
 
 De la tabla de resultados, seleccionamos sólo esos genes y los ordenamos por la estimación del log2 fold change para recoger los genes más significativos con la regulación negativa más acusada:
 
 ```{r strongest down-regulation}
-resSig <- subset(res_NITvSFI, padj < 0.1)
+resSig <- subset(res_SFIvsNIT, padj < 0.1)
 head(resSig[order(resSig$log2FoldChange), ])
 ```
 
@@ -730,7 +730,7 @@ La lista completa de genes con expresión diferencial entre los grupos NIT y SFI
 ### Histograma de p-valores no ajustados
 
 ```{r histogram of unadjusted p values, fig.cap="Histograma de p-valores no ajustados de cada gen. El perfil esperado es el de un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades."}
-hist(res_NITvSFI$pvalue[res_NITvSFI$baseMean > 1], breaks = 100,
+hist(res_SFIvsNIT$pvalue[res_SFIvsNIT$baseMean > 1], breaks = 100,
      col = "grey50", border = "white",
      main = "", xlab = "P valores no ajustados", ylab = "Frecuencia")
 ```
@@ -774,17 +774,17 @@ library('org.Hs.eg.db')
 ```{r annotate res object}
 # Cut the version from the ensembl code
 # From https://www.biostars.org/p/178726/
-ensembl_codes <- gsub("\\..*", "", row.names(res_NITvSFI))
+ensembl_codes <- gsub("\\..*", "", row.names(res_SFIvsNIT))
 
 # Add symbol column
-res_NITvSFI$symbol <- mapIds(org.Hs.eg.db,
+res_SFIvsNIT$symbol <- mapIds(org.Hs.eg.db,
                      keys = ensembl_codes,
                      column = "SYMBOL",
                      keytype = "ENSEMBL",
                      multiVals = "first")
 
 # Add Entrez ID
-res_NITvSFI$entrez <- mapIds(org.Hs.eg.db,
+res_SFIvsNIT$entrez <- mapIds(org.Hs.eg.db,
                      keys = ensembl_codes,
                      column = "ENTREZID",
                      keytype = "ENSEMBL",
@@ -794,7 +794,7 @@ res_NITvSFI$entrez <- mapIds(org.Hs.eg.db,
 Ejemplo del listado de genes, ordenado por p-valor ajustado (decreciente), incluyendo el símbolo del gen:
 
 ```{r genes with symbol ordered by p-value}
-resOrdered <- res_NITvSFI[order(res_NITvSFI$padj),]
+resOrdered <- res_SFIvsNIT[order(res_SFIvsNIT$padj),]
 
 # Store as a csv
 if(!(file.exists("results/resOrdered.csv"))){
@@ -886,7 +886,7 @@ Como listas de genes hemos utilizado las siguientes:
 ```{r lista para significatividad biologica}
 
 # Vector of EntrezIDs from the list of genes of interest, removing NAs
-geneVector_NITvsSFI <- res_NITvSFI$entrez[!is.na(res_NITvSFI$entrez)]
+geneVector_NITvsSFI <- res_SFIvsNIT$entrez[!is.na(res_SFIvsNIT$entrez)]
 # geneListControl <- as.character(read.csv2("results/control-differential-genes.csv")[, 4])
 # geneListASD <- as.character(read.csv2("results/ASD-differential-genes.csv")[, 4])
 geneVector_universe <- keys(org.Hs.eg.db, keytype = "ENTREZID")
@@ -921,7 +921,7 @@ ego <- enrichGO(gene = geneVector_NITvsSFI,
 Este tipo de análisis está especializado en detectar situaciones en las que las diferencias de expresión son pequeñas, pero coordinadas para un grupo de genes relacionados. En este informe hemos utilizado la función _gseGO_ del paquete _cluseterProfiler_ para realizar este análisis.
 ```{r Gene Set Enrichment Analysis, eval=FALSE}
 # Generate ranked named vector of genes
-gse_genelist <- res_NITvSFI[!is.na(res_NITvSFI$padj), ] # Remove NAs
+gse_genelist <- res_SFIvsNIT[!is.na(res_SFIvsNIT$padj), ] # Remove NAs
 gse_genelist <- gse_genelist[gse_genelist$padj < 0.1, ] # FDR 10%
 gse_genelist <- setNames(abs(gse_genelist$log2FoldChange), # Named vector of fold changes
                          rownames(gse_genelist))
