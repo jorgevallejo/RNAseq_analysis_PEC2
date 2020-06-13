@@ -929,7 +929,9 @@ hist(res_ELIvsSFI$pvalue[res_ELIvsSFI$baseMean > 1], breaks = 100,
 axis(2, las=2)
 ```
 
-### Agrupación jerárquica de los genes más variables
+#### Agrupación jerárquica de los genes más variables
+
+Volvemos una vez más al mapa de calor, esta vez para explorar no sólo las relaciones entre las muestras, sino también entre los genes. Para generar esta figura hemos tenido en cuenta los 20 genes con mayor varibilidad entre muestras.
 
 ```{r separar los genes mas variables}
 library('genefilter')
@@ -943,16 +945,21 @@ mat <- assay(vsd)[topVarGenes, ]
 # Calculate the amount by which each gene deviates in a specific sample
 # from the gene average across the samples
 mat <- mat - rowMeans(mat)
-anno <- data.frame(Grupo = colData(vsd)[, c("Group")])
+anno <- data.frame(Grupo = colData(vsd)[, c("Group")],
+                   Sexo = colData(vsd)[, c("sex")])
 rownames(anno) <- colnames(mat)
 pheatmap(mat, annotation_col = anno,
-         angle_col = 45)
+         angle_col = 90,
+         cutree_rows = 4,
+         cutree_cols = 4,
+         fontsize_row = 8,
+         fontsize_col = 7)
 
 ```
 
 Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo control (NIT), el otro todas las muestras infiltradas (SFI y ELI) sin que haya una diferencia clara entre ambos grupos de infiltradas.
 
-Lo genes representados en el mapa de calor, aquellos 20 que presentan mayor varianción intermuestral, parecen dividirse en dos grandes grupos.
+Lo genes representados en el mapa de calor, aquellos 20 que presentan mayor variación intermuestral, parecen dividirse en dos grandes grupos.
 
 
 
