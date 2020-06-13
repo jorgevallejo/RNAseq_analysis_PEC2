@@ -791,22 +791,41 @@ res_ELIvsSFI$genename <- mapIds(org.Hs.eg.db,
 
 Ejemplos de cada listado de genes, ordenados por p-valor ajustado (decreciente), incluyendo el símbolo del gen y su nombre:
 
+```{r order results by adjusted p-value}
+res_SFIvsNIT <- res_SFIvsNIT[order(res_SFIvsNIT$padj), ]
+
+res_ELIvsNIT <- res_ELIvsNIT[order(res_ELIvsNIT$padj), ]
+
+res_ELIvsSFI <- res_ELIvsSFI[order(res_ELIvsSFI$padj), ]
+
+# Save results as CSV files
+interfile <- "results/res_SFIvsNIT.csv"
+if (!(file.exists(interfile))){
+  write.csv(res_SFIvsNIT, file = interfile)
+}
+
+interfile <- "results/res_ELIvsNIT.csv"
+if (!(file.exists(interfile))){
+  write.csv(res_ELIvsNIT, file = interfile)
+}
+
+interfile <- "results/res_ELIvsSFI.csv"
+if (!(file.exists(interfile))){
+  write.csv(res_ELIvsSFI, file = interfile)
+}
+```
+
+
 ```{r genes with symbol ordered by p-value}
 res_SFIvsNIT_trimmed <- res_SFIvsNIT[, c(7, 9, 6, 2)] # Select columns
 
-# Order by adjusted p-value
+# 
 knitr::kable(head(res_SFIvsNIT_trimmed[order(res_SFIvsNIT_trimmed$padj), ]),
              col.names = c("Símbolo", "Nombre", "p-valor ajustado", "log2FC"),
              align = 'clcc',
              digits = c(4, 2),
              caption = 'Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el símbolo y el nombre del gen correspondientes a la base de datos Entrez. NA = casos en los que no hay correspondencia entre el código ENSEMBL y la base de datos Entrez.')
 
-# Store as a csv
-# if(!(file.exists("results/resOrdered.csv"))){
-#   write.csv(resOrdered, file="results/resOrdered.csv")
-# }
-# 
-# head(resOrdered)
 ```
 
 La lista completa de genes puede descargarse como archivo en formato CSV XXXXdesde este enlace.XXXX
