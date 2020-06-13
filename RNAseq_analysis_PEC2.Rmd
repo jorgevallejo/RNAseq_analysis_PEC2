@@ -735,7 +735,61 @@ res_SFIvsNIT$genename <- mapIds(org.Hs.eg.db,
                      multiVals = "first")
 ```
 
-Ejemplo del listado de genes, ordenado por p-valor ajustado (decreciente), incluyendo el símbolo del gen y su nombre:
+```{r annotate res object ELIvsNIT}
+# Cut the version from the ensembl code
+# From https://www.biostars.org/p/178726/
+ensembl_codes <- gsub("\\..*", "", row.names(res_ELIvsNIT))
+
+# Add symbol column
+res_ELIvsNIT$symbol <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "SYMBOL",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add Entrez ID
+res_ELIvsNIT$entrez <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "ENTREZID",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add GENENAME
+res_ELIvsNIT$genename <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "GENENAME",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+```
+
+```{r annotate res object ELIvsSFI}
+# Cut the version from the ensembl code
+# From https://www.biostars.org/p/178726/
+ensembl_codes <- gsub("\\..*", "", row.names(res_ELIvsSFI))
+
+# Add symbol column
+res_ELIvsSFI$symbol <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "SYMBOL",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add Entrez ID
+res_ELIvsSFI$entrez <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "ENTREZID",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add GENENAME
+res_ELIvsSFI$genename <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "GENENAME",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+```
+
+Ejemplos de cada listado de genes, ordenados por p-valor ajustado (decreciente), incluyendo el símbolo del gen y su nombre:
 
 ```{r genes with symbol ordered by p-value}
 res_SFIvsNIT_trimmed <- res_SFIvsNIT[, c(7, 9, 6, 2)] # Select columns
