@@ -871,25 +871,42 @@ knitr::kable(sumas,
 rm(sumas)
 ```
 
-```{r display log fold changes versus expression strength, fig.cap='Gráfica mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1'}
-plotMA(res_SFIvsNIT)
+### Gráficas de resultados
+
+#### Gráficas MA
+
+Una forma más visual de explorar la cantidad de genes con expresión diferencial estadísticamente significativa es mediante gráficas MA comparando la expresión diferencial (log-fold changes), frente a la fuerza de expresión (media de cuentas):
+
+```{r display log fold changes versus expression strength,fig.cap='Gráficas mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1 (FDR 10%)'}
+par(mfrow = c(2, 2))
+plotMA(res_SFIvsNIT,
+       alpha = 0.1,
+       main = 'SFI-NIT',
+       xlab = 'Media de cuentas normalizadas',
+       ylab = 'log2FC',
+       ylim = c(-6, 6))
+
+plotMA(res_ELIvsNIT,
+       alpha = 0.1,
+       main = 'ELI-NIT',
+       xlab = 'Media de cuentas normalizadas',
+       ylab = 'log2FC',
+       ylim = c(-6, 6))
+
+plotMA(res_ELIvsSFI,
+       alpha = 0.1,
+       main = 'ELI-SFI',
+       xlab = 'Media de cuentas normalizadas',
+       ylab = 'log2FC',
+       ylim = c(-6, 6))
+
 ```
 
-De la tabla de resultados, seleccionamos sólo esos genes y los ordenamos por la estimación del log2 fold change para recoger los genes más significativos con la regulación negativa más acusada:
+Tanto en la tabla como en las gráficas podemos ver que en las comparaciónes del grupo control (NIT) con los grupos patológicos (SFI y ELI), los genes regulados al alza (con más expresión en tejido patológico que en tejido normal) son mayoría, aproximadamente el doble. En la comparación ELI-NIT la diferencia de proporción entre genes regulados al alza y a la baja no es tan grande.
 
-```{r strongest down-regulation}
-resSig <- subset(res_SFIvsNIT, padj < 0.1)
-head(resSig[order(resSig$log2FoldChange), ])
-```
-
-Genes más significativos con la regulación positiva más acusada:
-```{r strongest up-regulation}
-head(resSig[order(resSig$log2FoldChange, decreasing = TRUE), ])
-```
+Otro detalle interesante es que el total de genes diferencialmente expresados es mucho menor en la comparación SFI-NIT que en las otras dos comparaciones. Como ya veíamos en el análisis de componentes principales y en el mapa de calor, las muestras NIT y SFI presentan perfiles de expresión génica más parecidos entre sí que con las muestras ELI.
 
 
-
-## Gráficas de resultados
 
 
 ### Histograma de p-valores no ajustados
