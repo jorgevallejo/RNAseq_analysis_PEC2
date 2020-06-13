@@ -841,6 +841,7 @@ knitr::kable(head(res_ELIvsSFI[, c(7, 9, 6, 2)]), # Select columns
 ```
 
 Las listas completas de genes con expresión diferencial entre los diferentes grupos pueden descargarse como archivos en formato CSV XXXXdesde estos enlaces.XXXX
+\newpage
 
 ## Cuantificación de genes diferencialmente expresados
 
@@ -877,7 +878,7 @@ rm(sumas)
 
 Una forma más visual de explorar la cantidad de genes con expresión diferencial estadísticamente significativa es mediante gráficas MA comparando la expresión diferencial (log-fold changes), frente a la fuerza de expresión (media de cuentas):
 
-```{r display log fold changes versus expression strength,fig.cap='Gráficas mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1 (FDR 10%)'}
+```{r display log fold changes versus expression strength, fig.cap='Gráficas mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1 (FDR 10%)'}
 par(mfrow = c(2, 2))
 plotMA(res_SFIvsNIT,
        alpha = 0.1,
@@ -906,15 +907,26 @@ Tanto en la tabla como en las gráficas podemos ver que en las comparaciónes de
 
 Otro detalle interesante es que el total de genes diferencialmente expresados es mucho menor en la comparación SFI-NIT que en las otras dos comparaciones. Como ya veíamos en el análisis de componentes principales y en el mapa de calor, las muestras NIT y SFI presentan perfiles de expresión génica más parecidos entre sí que con las muestras ELI.
 
+#### Histograma de p-valores no ajustados
 
+Para comprobar que no estamos introduciendo errores durante el análisis representamos, de cada comparación, un histograma de los p-valores no ajustados de cada gen. El perfil esperado es el de un pico de genes cercanos al valor 0, y el resto de genes repartidos por el abanico de probabilidades. Desviaciones de ese perfil indicarían algún fallo en los datos o en nuestro tratamiento de estos.
 
-
-### Histograma de p-valores no ajustados
-
-```{r histogram of unadjusted p values, fig.cap="Histograma de p-valores no ajustados de cada gen. El perfil esperado es el de un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades."}
+```{r histogram of unadjusted p values, fig.cap="Histogramas de p-valores no ajustados de cada gen. El perfil observado es el esperado; un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades."}
+par(mfrow = c(2,2))
 hist(res_SFIvsNIT$pvalue[res_SFIvsNIT$baseMean > 1], breaks = 100,
-     col = "grey50", border = "white",
-     main = "", xlab = "P valores no ajustados", ylab = "Frecuencia")
+     col = "grey50", border = "white", yaxt = 'n',
+     main = "SFI-NIT", xlab = "P valores no ajustados", ylab = "Frecuencia")
+axis(2, las=2)
+
+hist(res_ELIvsNIT$pvalue[res_ELIvsNIT$baseMean > 1], breaks = 100,
+     col = "grey50", border = "white", yaxt = 'n',
+     main = "ELI-NIT", xlab = "P valores no ajustados", ylab = "Frecuencia")
+axis(2, las=2)
+
+hist(res_ELIvsSFI$pvalue[res_ELIvsSFI$baseMean > 1], breaks = 100,
+     col = "grey50", border = "white", yaxt = 'n',
+     main = "ELI-SFI", xlab = "P valores no ajustados", ylab = "Frecuencia")
+axis(2, las=2)
 ```
 
 ### Agrupación jerárquica de los genes más variables
