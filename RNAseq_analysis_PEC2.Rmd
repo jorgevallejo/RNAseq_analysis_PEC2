@@ -847,9 +847,30 @@ Las listas completas de genes con expresión diferencial entre los diferentes gr
 plotMA(res_SFIvsNIT)
 ```
 
-Si consideramos aceptable una fracción de falsos positivos del 10%, podemos considerar como significativos todos aquellos genes con un p-valor ajustado por debajo de 0.1:
+Si consideramos aceptable una fracción de falsos positivos del 10%, podemos considerar como significativos todos aquellos genes con un p-valor ajustado por debajo de 0.1, y calcular cuántos genes con expresión diferencial estadísticamente significativa detectamos en cada una de las comparaciones; además los podemos dividir entre genes regulados al alza (log2FC positivo) y regulados a la baja.
 ```{r genes con p valor ajustado menor de 0.1}
-sum(res_SFIvsNIT$padj < 0.1, na.rm=TRUE)
+comparaciones <- list(res_SFIvsNIT, res_ELIvsNIT, res_ELIvsSFI)
+
+sumas <- sapply(
+  comparaciones,
+  function(x) rbind(
+    upregulated <- sum(x[, c("padj")] < 0.1 & # FDR 10%
+                    x[, c("log2FoldChange")] > 0, # upregulated
+                  na.rm = TRUE),
+    downregulated <- sum(x[, c("padj")] < 0.1 & # FDR 10%
+                    x[, c("log2FoldChange")] < 0, # downregulated
+                  na.rm = TRUE),
+    total <- upregulated + downregulated)
+)
+
+rownames(sumas) <- c("Regulación al alza",
+                     "Regulación a la baja",
+                     "Total")
+knitr::kable(sumas,
+             col.names = c("SFI-NIT", "ELI-NIT", "ELI-SFI"),
+             format.args = list(big.mark = ' '))
+
+rm(sumas)
 ```
 
 De la tabla de resultados, seleccionamos sólo esos genes y los ordenamos por la estimación del log2 fold change para recoger los genes más significativos con la regulación negativa más acusada:
@@ -864,13 +885,7 @@ Genes más significativos con la regulación positiva más acusada:
 head(resSig[order(resSig$log2FoldChange, decreasing = TRUE), ])
 ```
 
-```{r store NITvsSFI results in csv file}
-if (!(file.exists("results/res_NITvsSFI.csv"))){
-  write.csv(res, file = "results/res_NITvsSFI.csv")
-}
-```
 
-La lista completa de genes con expresión diferencial entre los grupos NIT y SFI puede descargarse como un archivo en formato CSV XXXXdesde este enlaceXXXX.
 
 ## Gráficas de resultados
 
