@@ -471,7 +471,7 @@ rm(list = c("genes_total", "genes_postfilter"))
 library('DESeq2')
 ddsMat <- DESeqDataSetFromMatrix(countData = counts_subset,
                                  colData = targets_sampled,
-                                 # Group is last because in the studied factor
+                                 # Group is last because is the studied factor
                                  design =  ~ sex + Group)
 ```
 Las estrategias de normalización sirven para disminuir diferencias entre muestras provocadas por sesgos técnicos. Uno de los sesgos más comunes en RNA-seq son las diferencias en el número de lecturas en cada muestra, y para corregirlo hemos elegido el método conocido como _expressión de logaritmo relativo_ (RLE por sus siglas en inglés).
@@ -620,7 +620,7 @@ ggplot(pcaData, aes(PC1, PC2, color=Group, shape=sex)) +
 
 Al igual que observamos con los datos sin transformar, la mayor parte de la varianza parece deberse al grupo experimental, con las muestras del grupo ELI en su mayoría reúnidas a la izquierda del gráfico, las muestras NIT a la derecha, y las muestras SFI entremezcladas con ambos grupos formando una suerte de puente. La aportación a la varianza por sexos sigue siendo clara, con las muestras procedentes de varones en la zona superior y las de hembras en la inferior.
 
-# Identificación de genes diferencialmente expresados
+# Identificación y anotación de genes diferencialmente expresados
 
 Después de explorar los datos para comprender su estructura, realizar análisis de calidad, normalizar los datos de expresión, estabilizar la varianza, y filtrar los genes menos informativos; llega el momento de analizar qué genes se expresan de forma diferente entre los grupos experimentales.
 
@@ -695,6 +695,68 @@ knitr::kable(head(res_SFIvsNIT_trimmed[order(res_SFIvsNIT_trimmed$padj), ]),
              caption = 'Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el valor log2FC y el código ENSEMBL del gen.')
 ```
 
+## Anotación de las listas de genes
+
+En las listas que hemos generado los genes están identificados por un código Ensembl. Sin embargo, a nosotros humanos nos resulta más cómodo trabajar con los símbolos o nombres de cada gen. Es por eso que hemos procedido a anotar las listas para incluir el símbolo de cada gen y su código Entrez.
+
+No debemos de dejar de tener en cuenta, sin embargo, que las bases de datos Ensembl y Entrez utilizan criterios diferentes para definir qué es un gen, y tienen requisitos diferentes para incluir un gen en la base de datos. Esto tiene como consecuencia que muchos de los códigos de Ensembl no tengan su equivalente en códigos Entrez. 
+
+<!-- Estos últimos, sin embargo, serán necesarios para el análisis de significación biológica. Así pues, como parte del análisis de expresión diferencial hemos producido dos listas; una con los códigos Ensembl, y otra con los códigos Entrez que no coincide exactamente con la primera. -->
+
+```{r load annotation libraries}
+library('AnnotationDbi')
+library('org.Hs.eg.db')
+```
+
+```{r annotate res object SFIvsNIT}
+# Cut the version from the ensembl code
+# From https://www.biostars.org/p/178726/
+ensembl_codes <- gsub("\\..*", "", row.names(res_SFIvsNIT))
+
+# Add symbol column
+res_SFIvsNIT$symbol <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "SYMBOL",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add Entrez ID
+res_SFIvsNIT$entrez <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "ENTREZID",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add GENENAME
+res_SFIvsNIT$genename <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "GENENAME",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+```
+
+Ejemplo del listado de genes, ordenado por p-valor ajustado (decreciente), incluyendo el símbolo del gen y su nombre:
+
+```{r genes with symbol ordered by p-value}
+res_SFIvsNIT_trimmed <- res_SFIvsNIT[, c(7, 9, 6, 2)] # Select columns
+
+# Order by adjusted p-value
+knitr::kable(head(res_SFIvsNIT_trimmed[order(res_SFIvsNIT_trimmed$padj), ]),
+             col.names = c("Símbolo", "Nombre", "p-valor ajustado", "log2FC"),
+             align = 'clcc',
+             digits = c(4, 2),
+             caption = 'Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el símbolo y el nombre del gen correspondientes a la base de datos Entrez. NA = casos en los que no hay correspondencia entre el código ENSEMBL y la base de datos Entrez.')
+
+# Store as a csv
+# if(!(file.exists("results/resOrdered.csv"))){
+#   write.csv(resOrdered, file="results/resOrdered.csv")
+# }
+# 
+# head(resOrdered)
+```
+
+La lista completa de genes puede descargarse como archivo en formato CSV XXXXdesde este enlace.XXXX
+
 
 ```{r display log fold changes versus expression strength, fig.cap='Gráfica mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1'}
 plotMA(res_SFIvsNIT)
@@ -761,51 +823,9 @@ Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo c
 
 Lo genes representados en el mapa de calor, aquellos 20 que presentan mayor varianción intermuestral, parecen dividirse en dos grandes grupos.
 
-### Anotación de las listas de genes
 
-En las listas que hemos generado los genes están identificados por un código Ensembl. Sin embargo, a nosotros humanos nos resulta más cómodo trabajar con los símbolos o nombres de cada gen. Es por eso que hemos procedido a anotar las listas para incluir el símbolo de cada gen y su código Entrez.
 
-No debemos de dejar de tener en cuenta, sin embargo, que las bases de datos Ensembl y Entrez utilizan criterios diferentes para definir qué es un gen, y tienen requisitos diferentes para incluir un gen en la base de datos. Esto tiene como consecuencia que muchos de los códigos de Ensembl no tengan su equivalente en códigos Entrez. Estos últimos, sin embargo, serán necesarios para el análisis de significación biológica. Así pues, como parte del análisis de expresión diferencial hemos producido dos listas; una con los códigos Ensembl, y otra con los códigos Entrez que no coincide exactamente con la primera.
 
-```{r load annotation libraries}
-library('AnnotationDbi')
-library('org.Hs.eg.db')
-```
-
-```{r annotate res object}
-# Cut the version from the ensembl code
-# From https://www.biostars.org/p/178726/
-ensembl_codes <- gsub("\\..*", "", row.names(res_SFIvsNIT))
-
-# Add symbol column
-res_SFIvsNIT$symbol <- mapIds(org.Hs.eg.db,
-                     keys = ensembl_codes,
-                     column = "SYMBOL",
-                     keytype = "ENSEMBL",
-                     multiVals = "first")
-
-# Add Entrez ID
-res_SFIvsNIT$entrez <- mapIds(org.Hs.eg.db,
-                     keys = ensembl_codes,
-                     column = "ENTREZID",
-                     keytype = "ENSEMBL",
-                     multiVals = "first")
-```
-
-Ejemplo del listado de genes, ordenado por p-valor ajustado (decreciente), incluyendo el símbolo del gen:
-
-```{r genes with symbol ordered by p-value}
-resOrdered <- res_SFIvsNIT[order(res_SFIvsNIT$padj),]
-
-# Store as a csv
-if(!(file.exists("results/resOrdered.csv"))){
-  write.csv(resOrdered, file="results/resOrdered.csv")
-}
-
-head(resOrdered)
-```
-
-La lista completa de genes puede descargarse como archivo en formato CSV XXXXdesde este enlace.XXXX
 
 
 
