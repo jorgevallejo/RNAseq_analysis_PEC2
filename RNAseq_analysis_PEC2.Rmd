@@ -816,19 +816,31 @@ if (!(file.exists(interfile))){
 ```
 
 
-```{r genes with symbol ordered by p-value}
-res_SFIvsNIT_trimmed <- res_SFIvsNIT[, c(7, 9, 6, 2)] # Select columns
-
-# 
-knitr::kable(head(res_SFIvsNIT_trimmed[order(res_SFIvsNIT_trimmed$padj), ]),
+```{r example table SFIvsNIT}
+knitr::kable(head(res_SFIvsNIT[, c(7, 9, 6, 2)]), # Select columns
              col.names = c("Símbolo", "Nombre", "p-valor ajustado", "log2FC"),
              align = 'clcc',
              digits = c(4, 2),
-             caption = 'Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el símbolo y el nombre del gen correspondientes a la base de datos Entrez. NA = casos en los que no hay correspondencia entre el código ENSEMBL y la base de datos Entrez.')
-
+             caption = 'SFI vs.NIT. Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el símbolo y el nombre del gen correspondientes a la base de datos Entrez. NA = casos en los que no hay correspondencia entre el código ENSEMBL y la base de datos Entrez.')
 ```
 
-La lista completa de genes puede descargarse como archivo en formato CSV XXXXdesde este enlace.XXXX
+```{r example table ELIvsNIT}
+knitr::kable(head(res_ELIvsNIT[, c(7, 9, 6, 2)]), # Select columns
+             col.names = c("Símbolo", "Nombre", "p-valor ajustado", "log2FC"),
+             align = 'clcc',
+             digits = c(17, 2),
+             caption = 'ELI vs. NIT. Ejemplo de genes con expresión diferencial entre los grupos ELI y NIT, ordenados por menor p-valor ajustado.')
+```
+
+```{r example table ELIvsSFI}
+knitr::kable(head(res_ELIvsSFI[, c(7, 9, 6, 2)]), # Select columns
+             col.names = c("Símbolo", "Nombre", "p-valor ajustado", "log2FC"),
+             align = 'clcc',
+             digits = c(6, 2),
+             caption = 'ELI vs. SFI. Ejemplo de genes con expresión diferencial entre los grupos ELI y SFI, ordenados por menor p-valor ajustado.')
+```
+
+Las listas completas de genes con expresión diferencial entre los diferentes grupos pueden descargarse como archivos en formato CSV XXXXdesde estos enlaces.XXXX
 
 
 ```{r display log fold changes versus expression strength, fig.cap='Gráfica mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1'}
