@@ -1206,7 +1206,15 @@ cnetplot(egox, categorySize = 'pvalue')
 
 # Discusión
 
+Una de las características en los datos que parece haber introducido dificultad a la hora de analizarlos, es que las características de los tejidos en los tres grupos experimentales parece seguir un continuo en lugar de ser tres grupos rígidamente separados. Esto por lo menos es lo que parecen sugerir tanto el análisis de componentes principales como el mapa de calor de distancia entre muestras. Las muestras se representan bastante entremezcladas, siendo los grupos más distantes NIT y ELI con el grupo SFI haciendo de puente. También parece que las características de SFI y NIT son más parecidas entre ambos grupos que comparados con ELI.
 
+Un aspecto que me habría gustado explorar más, pero no he podido por falta de tiempo, es el efecto del sexo. En el análisis de componentes principales se revela como importante a la hora de explicar la varianza de los datos muestrales, y en el mapa de calor de genes se revela que los patrones de expresión de los genes con mayor variabilidad entre muestras están muy influenciados por el sexo.
+
+Me gustaría incidir en el cuidado a la hora de comunicar con qué repositorio de genes se está trabajando, ya que este mismo informe hemos visto las grandes diferencias entre ENSEMBL y Entrez, y que en muchas ocasiones no hay traducción directa entre los genes de uno y otro repositorio. Es importante entender que en cada repositorio la definición de lo que se considera como un gen, el método con el que entra al repositorio, y cómo se mantiene el propio repositorio son diferentes. Hay qué conocer cuáles son las diferencias y qué significa trabajar con un repositorio u otro.
+
+También quisiera comentar otra parte del análisis en la que hubiera querido profundizar si hubiese tenido más tiempo. Al hacer las comparaciones múltiples, originalmente tenía intención de generar una lista con los genes con expresión diferencial de las comparaciones SFI-NIT y ELI-NIT, menos los genes de la comparación ELI-SFI. Y otra lista con los genes exclusivos de la comparativa ELI-SFI. Estas listas las habría usado en el análisis de significatividad biológica para examinar los cambios de expresión génica exclusivos de patológico frente a sano por un lado, y los exclusivos de patológico leve frente a patológico severo.
+
+Por último, una corta reflexión acerca de la enorme cantidad de datos producida en estos análisis. Aunque el resultados de los mismos es como una destilación y resumen de los datos brutos de los que partimos, las listas de genes y términos de interés son tan abultadas que no se pueden incluir en el propio informe, sino que hay que enlazarlas como ficheros adicionales.
 
 # Apéndice A: Código
 
