@@ -87,7 +87,7 @@ iii) examinar las rutas moleculares implicadas.
 # Materiales y métodos
 
 ## Datos de origen
-Originalmente, los datos brutos fueron obtenidos por RNA-seq y proceden del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Para este análisis, sin embargo, he trabajado con datos ya pre-procesados en forma de dos archivos con formato CSV. Estos archivos (counts.csv y targets.csv) se pueden encontrar en mi perfil de GitHub siguiendo XXXXeste enlaceXXXX.
+Originalmente, los datos brutos fueron obtenidos por RNA-seq y proceden del proyecto [Genotype-Tissue Expression (GTEx)](https://gtexportal.org/home/). Para este análisis, sin embargo, he trabajado con datos ya pre-procesados en forma de dos archivos con formato CSV. Estos archivos (counts.csv y targets.csv) se pueden encontrar en mi perfil de GitHub siguiendo [este enlace](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/tree/master/data).
 
 El archivo counts.csv contiene el número de cuentas detectadas para cada gen en cada muestra del estudio. Es una tabla en la que cada observación (fila) corresponde a un gen reconocido por el proyecto Ensembl, y cada variable (columna) a una de las muestras de tejido del estudio. A partir de los datos de este archivo podemos analizar la expresión de cada gen en cada muestra.
 
@@ -840,7 +840,11 @@ knitr::kable(head(res_ELIvsSFI[, c(7, 9, 6, 2)]), # Select columns
              caption = 'ELI vs. SFI. Ejemplo de genes con expresión diferencial entre los grupos ELI y SFI, ordenados por menor p-valor ajustado.')
 ```
 
-Las listas completas de genes con expresión diferencial entre los diferentes grupos pueden descargarse como archivos en formato CSV XXXXdesde estos enlaces.XXXX
+Las listas completas de genes con expresión diferencial entre los diferentes grupos pueden descargarse como archivos en formato CSV desde estos enlaces:  
+[SFI vs NIT](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/res_SFIvsNIT.csv)  
+[ELI vs NIT](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/res_ELIvsNIT.csv) 
+[ELI vs SFI](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/res_ELIvsSFI.csv)
+
 \newpage
 
 ## Cuantificación de genes diferencialmente expresados
@@ -1038,7 +1042,7 @@ Como listas de genes hemos utilizado las siguientes:
 **SFIvsNIT** - lista de genes con comportamiento diferencial en la comparación entre los grupos NIT y SFI.  
 **ELIvsNIT** - lista de genes con comportamiento diferencial en la comparación entre los grupos NIT y SFI.  
 **ELIvsSFI** - lista de genes con comportamiento diferencial en la comparación entre los grupos NIT y SFI.  
-**Universo** - lista de todos los genes con código Entrez en la base de datos org.Hs.eg.db. XXXXreferenciaXXXX
+**Universo** - lista de todos los genes con código Entrez en la [base de datos org.Hs.eg.db](https://bioconductor.org/packages/release/data/annotation/html/org.Hs.eg.db.html).
 
 ```{r lista para significatividad biologica}
 
@@ -1118,7 +1122,11 @@ ego_ELI_SFI <- enrichGO(gene = geneVector_ELIvsSFI,
 }
 ```
 
-El resultado del test es un listado de términos GO (junto con su descripción y estadísticos de test) sobrerrepresentados en nuestra lista, respecto a la lista de referencia. Los tres listados se pueden descargar completos en formato CSV desde XXXXeste enlaceXXXX.
+El resultado del test es un listado de términos GO (junto con su descripción y estadísticos de test) sobrerrepresentados en nuestra lista, respecto a la lista de referencia. Los tres listados se pueden descargar completos en formato CSV desde estos enlaces:  
+[GO SFI vs NIT](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/ego_SFI_NIT.csv)  
+[GO ELI vs NIT](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/ego_ELI_NIT.csv)  
+[GO ELI vs SFI](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/ego_ELI_SFI.csv)  
+
 
 ```{r ejemplo listado sobrerrepresentacion}
 knitr::kable(
@@ -1219,7 +1227,7 @@ Por último, una corta reflexión acerca de la enorme cantidad de datos producid
 # Apéndice A: Código
 
 El documento original en formato .Rmd, que incluye el código completo en lenguaje R usado para generar este informe, se puede consultar y descargar en el siguiente repositorio de Github:
-[]()
+[jorgevallejo/RNAseq_analysis_PEC2](https://github.com/jorgevallejo/RNAseq_analysis_PEC2)
 
 <a name="apendiceB"></a>
 
