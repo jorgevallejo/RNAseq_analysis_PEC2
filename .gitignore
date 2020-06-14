@@ -4,6 +4,7 @@
 .Ruserdata
 
 [directorios]
-data/
-results/
-intermediateResults/
+# data/
+# results/
+intermediateData/
+images/
