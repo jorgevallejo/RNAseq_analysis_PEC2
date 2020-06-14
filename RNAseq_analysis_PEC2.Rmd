@@ -878,7 +878,7 @@ rm(sumas)
 
 Una forma más visual de explorar la cantidad de genes con expresión diferencial estadísticamente significativa es mediante gráficas MA comparando la expresión diferencial (log-fold changes), frente a la fuerza de expresión (media de cuentas):
 
-```{r display log fold changes versus expression strength, fig.cap='Gráficas mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1 (FDR 10%)'}
+```{r display log fold changes versus expression strength, fig.align = 'left', out.width = '75%', fig.cap='Gráficas mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1 (FDR 10%)'}
 par(mfrow = c(2, 2))
 plotMA(res_SFIvsNIT,
        alpha = 0.1,
@@ -928,6 +928,7 @@ hist(res_ELIvsSFI$pvalue[res_ELIvsSFI$baseMean > 1], breaks = 100,
      main = "ELI-SFI", xlab = "P valores no ajustados", ylab = "Frecuencia")
 axis(2, las=2)
 ```
+\newpage
 
 #### Agrupación jerárquica de los genes más variables
 
@@ -961,36 +962,66 @@ Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo c
 
 En cuanto a las agrupaciones de genes, vemos que esta lista de los 20 genes con mayor varianza entre muestras está muy influenciada por el sexo de la muestra y que dos de sus agrupaciones (la del extremo superior y la del extremo inferior) presentan un patrón de expresión diferencial dependiente principalmente del sexo.
 
-
-
-
-
-
-
-### Comparaciones múltiples
+# Comparaciones múltiples
 Debido a que los grupos experimentales corresponden a grupo control (NIT), síntomas suaves (SFI), y síntomas severos (ELI); puede ser de gran interés saber qué genes presentan expresión diferencial, por ejemplo, en las comparaciones del grupo control frente a los grupos con síntomas,y qué genes presentan expresión diferencial sólo en las comparaciones entre grupos con síntomas pero no cuando se compara con el grupo control.
 
-```{r decidetests, eval=FALSE}
-# as many columns as comparisons and as many rows as genes.
-res <- decideTests(fit.main, method="separate", adjust.method="fdr", p.value=0.1,
-                   lfc = 0)
+```{r genes comunes a diferentes comparaciones}
+# Cut off values
+log2FCcut <- 0 # log2 fold change
+padjcut <- 0.1 # FDR
+
+# Common differential genes between comparisons SFI-NIT and ELI-NIT
+SFI_NITvsELI_NIT <- c(
+  rownames(subset(res_SFIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)) %in%
+  rownames(subset(res_ELIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)))
+
+# Between SFI-NIT and ELI-SFI
+SFI_NITvsELI_SFI <- intersect(
+  rownames(subset(res_SFIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)),
+  rownames(subset(res_ELIvsSFI, padj < padjcut & abs(log2FoldChange)>=log2FCcut)))
+
+# Between ELI-NIT and ELI-SFI
+ELI_NITvsELI_SFI <- intersect(
+  rownames(subset(res_ELIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)),
+  rownames(subset(res_ELIvsSFI, padj < padjcut & abs(log2FoldChange)>=log2FCcut)))
+
+# Between SFI-NIT, ELI-NIT, and ELI-SFI
+SFI_NITvsELI_NITvsELI_SFI <- intersect(intersect(
+  rownames(subset(res_SFIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)),
+  rownames(subset(res_ELIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut))),
+    rownames(subset(res_ELIvsSFI, padj < padjcut & abs(log2FoldChange)>=log2FCcut)))
+
 # This table can be annotated and saved as a csv file, for example
 ```
 
-<!-- Podemos hacer primero una comparación cuantitativa entre las comparaciónes; cuántos genes diferenciales son exclusivos de una de las comparaciones y cuántos son comunes. -->
+## Diagrama de Venn
 
-<!-- Resumen de los resultados: -->
-```{r resumen comparaciones multiples, eval=FALSE}
-sum.res.rows <- apply(abs(res), 1, sum)
-res.selected <- res[sum.res.rows!=0, ]
-print(summary(res))
-```
+Una de las formas más cómodas de presentar esta información son los diagramas de Venn, donde el solapamiento entre los circulos representa los genes en común con expresión diferencial entre las comparaciones:
+```{r venn diagram, fig.height=3, fig.width=3}
+library(VennDiagram)
+# Areas of each comparison
+areaSFI_NIT <- nrow(subset(res_SFIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut))
+areaELI_NIT <- nrow(subset(res_ELIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut))
+areaELI_SFI <- nrow(subset(res_ELIvsSFI, padj < padjcut & abs(log2FoldChange)>=log2FCcut))
 
-#### Diagrama de Venn
-```{r venn diagram, fig.height=4.5, fig.width=4.5, eval=FALSE}
-vennDiagram(res.selected[, 1:2], cex=0.9)
-title("Genes en común entre dos comparaciones\n Seleccionados con FDR <0.1",
-      cex.main=0.9)
+# Overlaps
+ovSFI_NITvsELI_NIT <- length(SFI_NITvsELI_NIT)
+ovSFI_NITvsELI_SFI <- length(SFI_NITvsELI_SFI)
+ovELI_NITvsELI_SFI <- length(ELI_NITvsELI_SFI)
+ovSFI_NITvsELI_NITvsELI_SFI <- length(SFI_NITvsELI_NITvsELI_SFI)
+
+# Draw diagram
+# Code adapted from tutorial:
+# https://rstudio-pubs-static.s3.amazonaws.com/13301_6641d73cfac741a59c0a851feb99e98b.html
+unclevenn<-draw.triple.venn(area1 = areaSFI_NIT, area2 = areaELI_NIT, area3 = areaELI_SFI,
+                   n12 = ovSFI_NITvsELI_SFI, n13 = ovSFI_NITvsELI_SFI,
+                 n23 = ovELI_NITvsELI_SFI, n123 = ovSFI_NITvsELI_NITvsELI_SFI,
+                   category = c("SFIvsNIT", "ELIvsNIT", "ELIvsSFI"),
+                   lty = rep("blank"),
+                   fill = c("light blue", "pink", "mediumorchid"), alpha = rep(0.5, 3),
+                   cat.dist = rep(0.025, 3))
+grid.draw(unclevenn)
+grid.newpage()
 ```
 
 <!-- A partir del diagrama de Venn, vemos que **223** genes están diferencialmente poliadenilados sólo en las muestras "Control", y **627** sólo en las muestras "ASD". Son estos dos grupos de genes los que exploraremos para investigar las diferencias entre los grupos "Control" y "ASD". -->
