@@ -957,9 +957,9 @@ pheatmap(mat, annotation_col = anno,
 
 ```
 
-Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo control (NIT), el otro todas las muestras infiltradas (SFI y ELI) sin que haya una diferencia clara entre ambos grupos de infiltradas.
+Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo control (NIT) junto con algunas muestras SFI, y el otro grupo una mezcla de muestras ELI y SFI. Resulta muy interesante que esas dos grandes agrupaciones de muestras estén divididas a su vez en sub-agrupaciones por sexo.
 
-Lo genes representados en el mapa de calor, aquellos 20 que presentan mayor variación intermuestral, parecen dividirse en dos grandes grupos.
+En cuanto a las agrupaciones de genes, vemos que esta lista de los 20 genes con mayor varianza entre muestras está muy influenciada por el sexo de la muestra y que dos de sus agrupaciones (la del extremo superior y la del extremo inferior) presentan un patrón de expresión diferencial dependiente principalmente del sexo.
 
 
 
