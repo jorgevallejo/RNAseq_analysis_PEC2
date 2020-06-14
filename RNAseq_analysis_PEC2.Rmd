@@ -471,7 +471,7 @@ rm(list = c("genes_total", "genes_postfilter"))
 library('DESeq2')
 ddsMat <- DESeqDataSetFromMatrix(countData = counts_subset,
                                  colData = targets_sampled,
-                                 # Group is last because in the studied factor
+                                 # Group is last because is the studied factor
                                  design =  ~ sex + Group)
 ```
 Las estrategias de normalización sirven para disminuir diferencias entre muestras provocadas por sesgos técnicos. Uno de los sesgos más comunes en RNA-seq son las diferencias en el número de lecturas en cada muestra, y para corregirlo hemos elegido el método conocido como _expressión de logaritmo relativo_ (RLE por sus siglas en inglés).
@@ -620,14 +620,20 @@ ggplot(pcaData, aes(PC1, PC2, color=Group, shape=sex)) +
 
 Al igual que observamos con los datos sin transformar, la mayor parte de la varianza parece deberse al grupo experimental, con las muestras del grupo ELI en su mayoría reúnidas a la izquierda del gráfico, las muestras NIT a la derecha, y las muestras SFI entremezcladas con ambos grupos formando una suerte de puente. La aportación a la varianza por sexos sigue siendo clara, con las muestras procedentes de varones en la zona superior y las de hembras en la inferior.
 
-### Identificación de genes diferencialmente expresados
+# Identificación y anotación de genes diferencialmente expresados
 
-Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un modelo de un factor con tres niveles, siendo esos niveles los grupos a los que está asignada cada muestra:  
-`r unique(targets$Group)`
+Después de explorar los datos para comprender su estructura, realizar análisis de calidad, normalizar los datos de expresión, estabilizar la varianza, y filtrar los genes menos informativos; llega el momento de analizar qué genes se expresan de forma diferente entre los grupos experimentales.
+
+Para el análisis de este ensayo, consideramos una matriz de diseño siguiendo un **modelo lineal** de dos factores ( _grupo experimental_ y _sexo_ ). El factor _sexo_ con dos niveles: _varón_ y _hembra_. El factor _grupo experimental_, con tres niveles ( _NIT_, _SFI_ y _ELI_ ), se ha considerado como **factor principal**.
+
+Así, la **fórmula** para el modelo lineal toma el siguiente aspecto:  
+$cuentas = sexo + \textit{grupo experimental}$
+
+El **análisis estadístico** se ha llevado a cabo mediante la función `DESeq()` del paquete _DESeq2_ de Bioconductor [@love2014moderated], que realiza una estimación de los factores de tamaño, estimación de la dispersión, y ajuste al modelo lineal generalizado (GLM) usando la distribución binomial negativa.
 
 ```{r differential expression analysis}
 # Remove large unnecesary objects from environment
-rm(vsd)
+rm(list=c("vsd", "expSet"))
 
 # Differential expression analysis parallelized
 if(file.exists("intermediateData/ddsMat_dea.RData")){
@@ -638,61 +644,295 @@ if(file.exists("intermediateData/ddsMat_dea.RData")){
 }
 ```
 
-```{r leg2 fold change NIT vs SFI}
-res_NITvSFI <- results(ddsMat, 
-               contrast = c("Group", "NIT", "SFI")) # NIT is numerator in fold change
-# res_NITvSFI
+Como resultado del análisis estadístico obtenemos, para cada comparación entre grupos, los **cambios relativos de expresión** en cada gen (log2 fold change) y el **p-valor ajustado** que nos informa acerca de la significatividad estadística de ese cambio.
+
+```{r leg2 fold changes}
+interfile <- "intermediateData/leg2_fold_changes.RData"
+
+if(file.exists(interfile)){
+  load(interfile)
+}else{
+# SFI-NIT
+res_SFIvsNIT <- results(ddsMat, 
+               contrast = c("Group", "SFI", "NIT")) # SFI is numerator in fold change
+
+# ELI-NIT
+res_ELIvsNIT <- results(ddsMat, 
+               contrast = c("Group", "ELI", "NIT")) # ELI is numerator in fold change
+
+# ELI-SFI
+res_ELIvsSFI <- results(ddsMat, 
+               contrast = c("Group", "ELI", "SFI")) # ELI is numerator in fold change
+
+save(list = c("res_SFIvsNIT", "res_ELIvsNIT", "res_ELIvsSFI"),
+     file = interfile)
+}
+
+
+# res_SFIvsNIT
 ```
 
 ```{r meaning of the columns, eval=FALSE}
-mcols(res, use.names = TRUE)
+mcols(res_SFIvsNIT, use.names = TRUE)
 ```
 
-```{r summarize the results}
-summary(res_NITvSFI)
+```{r summarize the results, eval=FALSE}
+summary(res_SFIvsNIT)
 ```
 
-```{r display log fold changes versus expression strength, fig.cap='Gráfica mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1'}
-plotMA(res_NITvSFI)
+Como ejemplo, mostramos aquí los seis genes con menor p-valor ajustado de la comparación SFI-NIT:
+
+```{r example table of differentially expressed genes}
+# Order by adjusted p-value
+res_SFIvsNIT_trimmed <- res_SFIvsNIT[!is.na(res_SFIvsNIT$padj) & # Takes care of NA values
+                                     res_SFIvsNIT$padj < 0.1 # FDR < 10%
+                                     , c(2, 6)] # Columns log2FC and p.adusted
+
+knitr::kable(head(res_SFIvsNIT_trimmed[order(res_SFIvsNIT_trimmed$padj), ]),
+             col.names = c("log2FC", "p-valor ajustado"),
+             align = 'cc',
+             digits = c(2, 4),
+             caption = 'Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el valor log2FC y el código ENSEMBL del gen.')
 ```
 
-Si consideramos aceptable una fracción de falsos positivos del 10%, podemos considerar como significativos todos aquellos genes con un p-valor ajustado por debajo de 0.1:
-```{r genes con p valor ajustado menor de 0.1}
-sum(res_NITvSFI$padj < 0.1, na.rm=TRUE)
+## Anotación de las listas de genes
+
+En las listas que hemos generado los genes están identificados por un código Ensembl. Sin embargo, a nosotros humanos nos resulta más cómodo trabajar con los símbolos o nombres de cada gen. Es por eso que hemos procedido a anotar las listas para incluir el símbolo de cada gen y su código Entrez.
+
+No debemos de dejar de tener en cuenta, sin embargo, que las bases de datos Ensembl y Entrez utilizan criterios diferentes para definir qué es un gen, y tienen requisitos diferentes para incluir un gen en la base de datos. Esto tiene como consecuencia que muchos de los códigos de Ensembl no tengan su equivalente en códigos Entrez. 
+
+<!-- Estos últimos, sin embargo, serán necesarios para el análisis de significación biológica. Así pues, como parte del análisis de expresión diferencial hemos producido dos listas; una con los códigos Ensembl, y otra con los códigos Entrez que no coincide exactamente con la primera. -->
+
+```{r load annotation libraries}
+library('AnnotationDbi')
+library('org.Hs.eg.db')
 ```
 
-De la tabla de resultados, seleccionamos sólo esos genes y los ordenamos por la estimación del log2 fold change para recoger los genes más significativos con la regulación negativa más acusada:
+```{r annotate res object SFIvsNIT}
+# Cut the version from the ensembl code
+# From https://www.biostars.org/p/178726/
+ensembl_codes <- gsub("\\..*", "", row.names(res_SFIvsNIT))
 
-```{r strongest down-regulation}
-resSig <- subset(res_NITvSFI, padj < 0.1)
-head(resSig[order(resSig$log2FoldChange), ])
+# Add symbol column
+res_SFIvsNIT$symbol <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "SYMBOL",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add Entrez ID
+res_SFIvsNIT$entrez <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "ENTREZID",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add GENENAME
+res_SFIvsNIT$genename <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "GENENAME",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
 ```
 
-Genes más significativos con la regulación positiva más acusada:
-```{r strongest up-regulation}
-head(resSig[order(resSig$log2FoldChange, decreasing = TRUE), ])
+```{r annotate res object ELIvsNIT}
+# Cut the version from the ensembl code
+# From https://www.biostars.org/p/178726/
+ensembl_codes <- gsub("\\..*", "", row.names(res_ELIvsNIT))
+
+# Add symbol column
+res_ELIvsNIT$symbol <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "SYMBOL",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add Entrez ID
+res_ELIvsNIT$entrez <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "ENTREZID",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add GENENAME
+res_ELIvsNIT$genename <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "GENENAME",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
 ```
 
-```{r store NITvsSFI results in csv file}
-if (!(file.exists("results/res_NITvsSFI.csv"))){
-  write.csv(res, file = "results/res_NITvsSFI.csv")
+```{r annotate res object ELIvsSFI}
+# Cut the version from the ensembl code
+# From https://www.biostars.org/p/178726/
+ensembl_codes <- gsub("\\..*", "", row.names(res_ELIvsSFI))
+
+# Add symbol column
+res_ELIvsSFI$symbol <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "SYMBOL",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add Entrez ID
+res_ELIvsSFI$entrez <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "ENTREZID",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+
+# Add GENENAME
+res_ELIvsSFI$genename <- mapIds(org.Hs.eg.db,
+                     keys = ensembl_codes,
+                     column = "GENENAME",
+                     keytype = "ENSEMBL",
+                     multiVals = "first")
+```
+
+Ejemplos de cada listado de genes, ordenados por p-valor ajustado (decreciente), incluyendo el símbolo del gen y su nombre:
+
+```{r order results by adjusted p-value}
+res_SFIvsNIT <- res_SFIvsNIT[order(res_SFIvsNIT$padj), ]
+
+res_ELIvsNIT <- res_ELIvsNIT[order(res_ELIvsNIT$padj), ]
+
+res_ELIvsSFI <- res_ELIvsSFI[order(res_ELIvsSFI$padj), ]
+
+# Save results as CSV files
+interfile <- "results/res_SFIvsNIT.csv"
+if (!(file.exists(interfile))){
+  write.csv(res_SFIvsNIT, file = interfile)
+}
+
+interfile <- "results/res_ELIvsNIT.csv"
+if (!(file.exists(interfile))){
+  write.csv(res_ELIvsNIT, file = interfile)
+}
+
+interfile <- "results/res_ELIvsSFI.csv"
+if (!(file.exists(interfile))){
+  write.csv(res_ELIvsSFI, file = interfile)
 }
 ```
 
-La lista completa de genes con expresión diferencial entre los grupos NIT y SFI puede descargarse como un archivo en formato CSV XXXXdesde este enlaceXXXX.
 
-## Gráficas de resultados
-
-
-### Histograma de p-valores no ajustados
-
-```{r histogram of unadjusted p values, fig.cap="Histograma de p-valores no ajustados de cada gen. El perfil esperado es el de un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades."}
-hist(res_NITvSFI$pvalue[res_NITvSFI$baseMean > 1], breaks = 100,
-     col = "grey50", border = "white",
-     main = "", xlab = "P valores no ajustados", ylab = "Frecuencia")
+```{r example table SFIvsNIT}
+knitr::kable(head(res_SFIvsNIT[, c(7, 9, 6, 2)]), # Select columns
+             col.names = c("Símbolo", "Nombre", "p-valor ajustado", "log2FC"),
+             align = 'clcc',
+             digits = c(4, 2),
+             caption = 'SFI vs.NIT. Ejemplo de genes con expresión diferencial entre los grupos SFI y NIT, ordenados por menor p-valor ajustado. Incluye el símbolo y el nombre del gen correspondientes a la base de datos Entrez. NA = casos en los que no hay correspondencia entre el código ENSEMBL y la base de datos Entrez.')
 ```
 
-### Agrupación jerárquica de los genes más variables
+```{r example table ELIvsNIT}
+knitr::kable(head(res_ELIvsNIT[, c(7, 9, 6, 2)]), # Select columns
+             col.names = c("Símbolo", "Nombre", "p-valor ajustado", "log2FC"),
+             align = 'clcc',
+             digits = c(17, 2),
+             caption = 'ELI vs. NIT. Ejemplo de genes con expresión diferencial entre los grupos ELI y NIT, ordenados por menor p-valor ajustado.')
+```
+
+```{r example table ELIvsSFI}
+knitr::kable(head(res_ELIvsSFI[, c(7, 9, 6, 2)]), # Select columns
+             col.names = c("Símbolo", "Nombre", "p-valor ajustado", "log2FC"),
+             align = 'clcc',
+             digits = c(6, 2),
+             caption = 'ELI vs. SFI. Ejemplo de genes con expresión diferencial entre los grupos ELI y SFI, ordenados por menor p-valor ajustado.')
+```
+
+Las listas completas de genes con expresión diferencial entre los diferentes grupos pueden descargarse como archivos en formato CSV XXXXdesde estos enlaces.XXXX
+\newpage
+
+## Cuantificación de genes diferencialmente expresados
+
+Si consideramos aceptable una fracción de falsos positivos del 10%, podemos considerar como significativos todos aquellos genes con un p-valor ajustado por debajo de 0.1, y calcular cuántos genes con expresión diferencial estadísticamente significativa detectamos en cada una de las comparaciones; además los podemos dividir entre genes regulados al alza (log2FC positivo) y regulados a la baja (log2FC negativo).
+```{r genes con p valor ajustado menor de 0.1}
+comparaciones <- list(res_SFIvsNIT, res_ELIvsNIT, res_ELIvsSFI)
+
+sumas <- sapply(
+  comparaciones,
+  function(x) rbind(
+    upregulated <- sum(x[, c("padj")] < 0.1 & # FDR 10%
+                    x[, c("log2FoldChange")] > 0, # upregulated
+                  na.rm = TRUE),
+    downregulated <- sum(x[, c("padj")] < 0.1 & # FDR 10%
+                    x[, c("log2FoldChange")] < 0, # downregulated
+                  na.rm = TRUE),
+    total <- upregulated + downregulated)
+)
+
+rownames(sumas) <- c("Regulación al alza",
+                     "Regulación a la baja",
+                     "Total")
+knitr::kable(sumas,
+             col.names = c("SFI-NIT", "ELI-NIT", "ELI-SFI"),
+             format.args = list(big.mark = ' '),
+             caption = 'Tabla resumen del número de genes con expresión diferencial estadísticamente significativa (FDR 10%) en cada una de las comparaciones, tanto a la alta como a la baja.')
+
+rm(sumas)
+```
+
+### Gráficas de resultados
+
+#### Gráficas MA
+
+Una forma más visual de explorar la cantidad de genes con expresión diferencial estadísticamente significativa es mediante gráficas MA comparando la expresión diferencial (log-fold changes), frente a la fuerza de expresión (media de cuentas):
+
+```{r display log fold changes versus expression strength, fig.align = 'left', out.width = '75%', fig.cap='Gráficas mostrando expresion diferencial (log-fold changes) frente a fuerza de expresion (media de cuentas normalizadas). Los puntos rojos representan los genes con un p-valor ajustado inferior a 0.1 (FDR 10%)'}
+par(mfrow = c(2, 2))
+plotMA(res_SFIvsNIT,
+       alpha = 0.1,
+       main = 'SFI-NIT',
+       xlab = 'Media de cuentas normalizadas',
+       ylab = 'log2FC',
+       ylim = c(-6, 6))
+
+plotMA(res_ELIvsNIT,
+       alpha = 0.1,
+       main = 'ELI-NIT',
+       xlab = 'Media de cuentas normalizadas',
+       ylab = 'log2FC',
+       ylim = c(-6, 6))
+
+plotMA(res_ELIvsSFI,
+       alpha = 0.1,
+       main = 'ELI-SFI',
+       xlab = 'Media de cuentas normalizadas',
+       ylab = 'log2FC',
+       ylim = c(-6, 6))
+
+```
+
+Tanto en la tabla como en las gráficas podemos ver que en las comparaciónes del grupo control (NIT) con los grupos patológicos (SFI y ELI), los genes regulados al alza (con más expresión en tejido patológico que en tejido normal) son mayoría, aproximadamente el doble. En la comparación ELI-NIT la diferencia de proporción entre genes regulados al alza y a la baja no es tan grande.
+
+Otro detalle interesante es que el total de genes diferencialmente expresados es mucho menor en la comparación SFI-NIT que en las otras dos comparaciones. Como ya veíamos en el análisis de componentes principales y en el mapa de calor, las muestras NIT y SFI presentan perfiles de expresión génica más parecidos entre sí que con las muestras ELI.
+
+#### Histograma de p-valores no ajustados
+
+Para comprobar que no estamos introduciendo errores durante el análisis representamos, de cada comparación, un histograma de los p-valores no ajustados de cada gen. El perfil esperado es el de un pico de genes cercanos al valor 0, y el resto de genes repartidos por el abanico de probabilidades. Desviaciones de ese perfil indicarían algún fallo en los datos o en nuestro tratamiento de estos.
+
+```{r histogram of unadjusted p values, fig.cap="Histogramas de p-valores no ajustados de cada gen. El perfil observado es el esperado; un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades."}
+par(mfrow = c(2,2))
+hist(res_SFIvsNIT$pvalue[res_SFIvsNIT$baseMean > 1], breaks = 100,
+     col = "grey50", border = "white", yaxt = 'n',
+     main = "SFI-NIT", xlab = "P valores no ajustados", ylab = "Frecuencia")
+axis(2, las=2)
+
+hist(res_ELIvsNIT$pvalue[res_ELIvsNIT$baseMean > 1], breaks = 100,
+     col = "grey50", border = "white", yaxt = 'n',
+     main = "ELI-NIT", xlab = "P valores no ajustados", ylab = "Frecuencia")
+axis(2, las=2)
+
+hist(res_ELIvsSFI$pvalue[res_ELIvsSFI$baseMean > 1], breaks = 100,
+     col = "grey50", border = "white", yaxt = 'n',
+     main = "ELI-SFI", xlab = "P valores no ajustados", ylab = "Frecuencia")
+axis(2, las=2)
+```
+\newpage
+
+#### Agrupación jerárquica de los genes más variables
+
+Volvemos una vez más al mapa de calor, esta vez para explorar no sólo las relaciones entre las muestras, sino también entre los genes. Para generar esta figura hemos tenido en cuenta los 20 genes con mayor varibilidad entre muestras.
 
 ```{r separar los genes mas variables}
 library('genefilter')
@@ -706,89 +946,82 @@ mat <- assay(vsd)[topVarGenes, ]
 # Calculate the amount by which each gene deviates in a specific sample
 # from the gene average across the samples
 mat <- mat - rowMeans(mat)
-anno <- data.frame(Grupo = colData(vsd)[, c("Group")])
+anno <- data.frame(Grupo = colData(vsd)[, c("Group")],
+                   Sexo = colData(vsd)[, c("sex")])
 rownames(anno) <- colnames(mat)
 pheatmap(mat, annotation_col = anno,
-         angle_col = 45)
+         angle_col = 90,
+         cutree_rows = 4,
+         cutree_cols = 4,
+         fontsize_row = 8,
+         fontsize_col = 7)
 
 ```
 
-Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo control (NIT), el otro todas las muestras infiltradas (SFI y ELI) sin que haya una diferencia clara entre ambos grupos de infiltradas.
+Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo control (NIT) junto con algunas muestras SFI, y el otro grupo una mezcla de muestras ELI y SFI. Resulta muy interesante que esas dos grandes agrupaciones de muestras estén divididas a su vez en sub-agrupaciones por sexo.
 
-Lo genes representados en el mapa de calor, aquellos 20 que presentan mayor varianción intermuestral, parecen dividirse en dos grandes grupos.
+En cuanto a las agrupaciones de genes, vemos que esta lista de los 20 genes con mayor varianza entre muestras está muy influenciada por el sexo de la muestra y que dos de sus agrupaciones (la del extremo superior y la del extremo inferior) presentan un patrón de expresión diferencial dependiente principalmente del sexo.
 
-### Anotación de las listas de genes
-
-En las listas que hemos generado los genes están identificados por un código Ensembl. Sin embargo, a nosotros humanos nos resulta más cómodo trabajar con los símbolos o nombres de cada gen. Es por eso que hemos procedido a anotar las listas para incluir el símbolo de cada gen y su código Entrez.
-
-No debemos de dejar de tener en cuenta, sin embargo, que las bases de datos Ensembl y Entrez utilizan criterios diferentes para definir qué es un gen, y tienen requisitos diferentes para incluir un gen en la base de datos. Esto tiene como consecuencia que muchos de los códigos de Ensembl no tengan su equivalente en códigos Entrez. Estos últimos, sin embargo, serán necesarios para el análisis de significación biológica. Así pues, como parte del análisis de expresión diferencial hemos producido dos listas; una con los códigos Ensembl, y otra con los códigos Entrez que no coincide exactamente con la primera.
-
-```{r load annotation libraries}
-library('AnnotationDbi')
-library('org.Hs.eg.db')
-```
-
-```{r annotate res object}
-# Cut the version from the ensembl code
-# From https://www.biostars.org/p/178726/
-ensembl_codes <- gsub("\\..*", "", row.names(res_NITvSFI))
-
-# Add symbol column
-res_NITvSFI$symbol <- mapIds(org.Hs.eg.db,
-                     keys = ensembl_codes,
-                     column = "SYMBOL",
-                     keytype = "ENSEMBL",
-                     multiVals = "first")
-
-# Add Entrez ID
-res_NITvSFI$entrez <- mapIds(org.Hs.eg.db,
-                     keys = ensembl_codes,
-                     column = "ENTREZID",
-                     keytype = "ENSEMBL",
-                     multiVals = "first")
-```
-
-Ejemplo del listado de genes, ordenado por p-valor ajustado (decreciente), incluyendo el símbolo del gen:
-
-```{r genes with symbol ordered by p-value}
-resOrdered <- res_NITvSFI[order(res_NITvSFI$padj),]
-
-# Store as a csv
-if(!(file.exists("results/resOrdered.csv"))){
-  write.csv(resOrdered, file="results/resOrdered.csv")
-}
-
-head(resOrdered)
-```
-
-La lista completa de genes puede descargarse como archivo en formato CSV XXXXdesde este enlace.XXXX
-
-
-
-### Comparaciones múltiples
+# Comparaciones múltiples
 Debido a que los grupos experimentales corresponden a grupo control (NIT), síntomas suaves (SFI), y síntomas severos (ELI); puede ser de gran interés saber qué genes presentan expresión diferencial, por ejemplo, en las comparaciones del grupo control frente a los grupos con síntomas,y qué genes presentan expresión diferencial sólo en las comparaciones entre grupos con síntomas pero no cuando se compara con el grupo control.
 
-```{r decidetests, eval=FALSE}
-# as many columns as comparisons and as many rows as genes.
-res <- decideTests(fit.main, method="separate", adjust.method="fdr", p.value=0.1,
-                   lfc = 0)
+```{r genes comunes a diferentes comparaciones}
+# Cut off values
+log2FCcut <- 0 # log2 fold change
+padjcut <- 0.1 # FDR
+
+# Common differential genes between comparisons SFI-NIT and ELI-NIT
+SFI_NITvsELI_NIT <- c(
+  rownames(subset(res_SFIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)) %in%
+  rownames(subset(res_ELIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)))
+
+# Between SFI-NIT and ELI-SFI
+SFI_NITvsELI_SFI <- intersect(
+  rownames(subset(res_SFIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)),
+  rownames(subset(res_ELIvsSFI, padj < padjcut & abs(log2FoldChange)>=log2FCcut)))
+
+# Between ELI-NIT and ELI-SFI
+ELI_NITvsELI_SFI <- intersect(
+  rownames(subset(res_ELIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)),
+  rownames(subset(res_ELIvsSFI, padj < padjcut & abs(log2FoldChange)>=log2FCcut)))
+
+# Between SFI-NIT, ELI-NIT, and ELI-SFI
+SFI_NITvsELI_NITvsELI_SFI <- intersect(intersect(
+  rownames(subset(res_SFIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut)),
+  rownames(subset(res_ELIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut))),
+    rownames(subset(res_ELIvsSFI, padj < padjcut & abs(log2FoldChange)>=log2FCcut)))
+
 # This table can be annotated and saved as a csv file, for example
 ```
 
-<!-- Podemos hacer primero una comparación cuantitativa entre las comparaciónes; cuántos genes diferenciales son exclusivos de una de las comparaciones y cuántos son comunes. -->
+## Diagrama de Venn
 
-<!-- Resumen de los resultados: -->
-```{r resumen comparaciones multiples, eval=FALSE}
-sum.res.rows <- apply(abs(res), 1, sum)
-res.selected <- res[sum.res.rows!=0, ]
-print(summary(res))
-```
+Una de las formas más cómodas de presentar esta información son los diagramas de Venn, donde el solapamiento entre los circulos representa los genes en común con expresión diferencial entre las comparaciones:
+```{r venn diagram, fig.height=3, fig.width=3}
+library(VennDiagram)
+# Areas of each comparison
+areaSFI_NIT <- nrow(subset(res_SFIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut))
+areaELI_NIT <- nrow(subset(res_ELIvsNIT, padj < padjcut & abs(log2FoldChange)>=log2FCcut))
+areaELI_SFI <- nrow(subset(res_ELIvsSFI, padj < padjcut & abs(log2FoldChange)>=log2FCcut))
 
-#### Diagrama de Venn
-```{r venn diagram, fig.height=4.5, fig.width=4.5, eval=FALSE}
-vennDiagram(res.selected[, 1:2], cex=0.9)
-title("Genes en común entre dos comparaciones\n Seleccionados con FDR <0.1",
-      cex.main=0.9)
+# Overlaps
+ovSFI_NITvsELI_NIT <- length(SFI_NITvsELI_NIT)
+ovSFI_NITvsELI_SFI <- length(SFI_NITvsELI_SFI)
+ovELI_NITvsELI_SFI <- length(ELI_NITvsELI_SFI)
+ovSFI_NITvsELI_NITvsELI_SFI <- length(SFI_NITvsELI_NITvsELI_SFI)
+
+# Draw diagram
+# Code adapted from tutorial:
+# https://rstudio-pubs-static.s3.amazonaws.com/13301_6641d73cfac741a59c0a851feb99e98b.html
+unclevenn<-draw.triple.venn(area1 = areaSFI_NIT, area2 = areaELI_NIT, area3 = areaELI_SFI,
+                   n12 = ovSFI_NITvsELI_SFI, n13 = ovSFI_NITvsELI_SFI,
+                 n23 = ovELI_NITvsELI_SFI, n123 = ovSFI_NITvsELI_NITvsELI_SFI,
+                   category = c("SFIvsNIT", "ELIvsNIT", "ELIvsSFI"),
+                   lty = rep("blank"),
+                   fill = c("light blue", "pink", "mediumorchid"), alpha = rep(0.5, 3),
+                   cat.dist = rep(0.025, 3))
+grid.draw(unclevenn)
+grid.newpage()
 ```
 
 <!-- A partir del diagrama de Venn, vemos que **223** genes están diferencialmente poliadenilados sólo en las muestras "Control", y **627** sólo en las muestras "ASD". Son estos dos grupos de genes los que exploraremos para investigar las diferencias entre los grupos "Control" y "ASD". -->
@@ -843,7 +1076,7 @@ Como listas de genes hemos utilizado las siguientes:
 ```{r lista para significatividad biologica}
 
 # Vector of EntrezIDs from the list of genes of interest, removing NAs
-geneVector_NITvsSFI <- res_NITvSFI$entrez[!is.na(res_NITvSFI$entrez)]
+geneVector_NITvsSFI <- res_SFIvsNIT$entrez[!is.na(res_SFIvsNIT$entrez)]
 # geneListControl <- as.character(read.csv2("results/control-differential-genes.csv")[, 4])
 # geneListASD <- as.character(read.csv2("results/ASD-differential-genes.csv")[, 4])
 geneVector_universe <- keys(org.Hs.eg.db, keytype = "ENTREZID")
@@ -878,7 +1111,7 @@ ego <- enrichGO(gene = geneVector_NITvsSFI,
 Este tipo de análisis está especializado en detectar situaciones en las que las diferencias de expresión son pequeñas, pero coordinadas para un grupo de genes relacionados. En este informe hemos utilizado la función _gseGO_ del paquete _cluseterProfiler_ para realizar este análisis.
 ```{r Gene Set Enrichment Analysis, eval=FALSE}
 # Generate ranked named vector of genes
-gse_genelist <- res_NITvSFI[!is.na(res_NITvSFI$padj), ] # Remove NAs
+gse_genelist <- res_SFIvsNIT[!is.na(res_SFIvsNIT$padj), ] # Remove NAs
 gse_genelist <- gse_genelist[gse_genelist$padj < 0.1, ] # FDR 10%
 gse_genelist <- setNames(abs(gse_genelist$log2FoldChange), # Named vector of fold changes
                          rownames(gse_genelist))
