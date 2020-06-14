@@ -1024,126 +1024,128 @@ grid.draw(unclevenn)
 grid.newpage()
 ```
 
-<!-- A partir del diagrama de Venn, vemos que **223** genes están diferencialmente poliadenilados sólo en las muestras "Control", y **627** sólo en las muestras "ASD". Son estos dos grupos de genes los que exploraremos para investigar las diferencias entre los grupos "Control" y "ASD". -->
+<!-- Los listados que me habrían interesado son:  
+- la unión de SFI-NIT y ELI-NIT menos ELI-SFI  
+- ELI-SFI menos la unión anterior 
 
-<!-- Otro grupo de genes interesantes serían aquellos cuyo perfil de up/down regulación cambia en muestras de sujetos control y sujetos ASD. -->
+Pero por falta de tiempo no los he obtenido.-->
 
-<!-- Estos tres grupos son los que marcarán nuestra lista definitiva de genes de interés. -->
-
-```{r lista definitiva interes, eval=FALSE}
-# Solo nos interesan aquellos genes que:
-## estan up o down regulados solo en uno de los grupos
-## estan up en un grupo y down en el otro
-dif.res.rows <- apply(res.selected, 1, function(x) {x[1] == x[2]})
-res.selected2 <- res.selected[dif.res.rows == FALSE, ]
-print(summary(res.selected2[, 1:2]))
-
-```
-
-```{r venn diagram lista interes, fig.height=4.5, fig.width=4.5, eval=FALSE}
-vennDiagram(res.selected2[, 1:2], cex=0.9)
-title("Genes en común entre dos comparaciones\n Seleccionados con FDR <0.1",
-      cex.main=0.9)
-```
-
-<!-- En resumen, encontramos **223** genes exclusivamente en sujetos "Control2 cuyos ARNm tienen colas diferencialmente largas o cortas.   -->
-<!-- Encontramos **627** genes exclusivamente en sujetos "ASD" cuyos ARNm tienen colas diferencialmente largas o cortas.   -->
-<!-- **Ningún** gen con diferenciación invertida entre comparaciones. -->
-```{r tablas listas genes exclusivos, eval=FALSE}
-write.csv2(geneAnots[geneAnots$ID %in% rownames(res.selected2), ],
-           file = "results/common-differential-genes.csv", row.names = FALSE)
-# Genes diferenciales exclusivos del grupo Control
-res.control <- res.selected2[(res.selected2[,1] != 0) == TRUE, ]
-write.csv2(geneAnots[geneAnots$ID %in% rownames(res.control), ],
-           file = "results/control-differential-genes.csv", row.names = FALSE)
-# Genes diferenciales exclusivos del grupo ASD
-res.ASD <- res.selected2[(res.selected2[,2] != 0) == TRUE, ]
-write.csv2(geneAnots[geneAnots$ID %in% rownames(res.ASD), ],
-           file = "results/ASD-differential-genes.csv", row.names = FALSE)
-```
-
-### Significatividad biológica
+# Significatividad biológica
 
 Una vez tenemos nuestras listas de genes anotadas, un herramienta más para interpretar los resultados del estudio es el examen de la significatividad biológica. En este informe, lo que hemos hecho es, a partir de las listas de genes con comportamiento diferencial, comprobar si existen funciones, procesos biológicos o rutas moleculares que aparezcan con más frecuencia en estas listas que en el resto de genes analizados.
 
-Como listas de genes hemos utilizado las siguientes:
-**NITvsSFI** - lista de genes con comportamiento diferencial en la comparación entre los grupos NIT y SFI.
-<!-- **Control** - lista de genes con comportamiento diferencial exclusivos del grupo "Control" (es un subset de la lista "Común"). -->
-<!-- **ASD** - lista de genes con comportamiento diferencial exclusivos del grupo "ASD" (es un subset de la lista "Común"). -->
-
+Como listas de genes hemos utilizado las siguientes:  
+**SFIvsNIT** - lista de genes con comportamiento diferencial en la comparación entre los grupos NIT y SFI.  
+**ELIvsNIT** - lista de genes con comportamiento diferencial en la comparación entre los grupos NIT y SFI.  
+**ELIvsSFI** - lista de genes con comportamiento diferencial en la comparación entre los grupos NIT y SFI.  
 **Universo** - lista de todos los genes con código Entrez en la base de datos org.Hs.eg.db. XXXXreferenciaXXXX
 
 ```{r lista para significatividad biologica}
 
 # Vector of EntrezIDs from the list of genes of interest, removing NAs
-geneVector_NITvsSFI <- res_SFIvsNIT$entrez[!is.na(res_SFIvsNIT$entrez)]
-# geneListControl <- as.character(read.csv2("results/control-differential-genes.csv")[, 4])
-# geneListASD <- as.character(read.csv2("results/ASD-differential-genes.csv")[, 4])
+geneVector_SFIvsNIT <- res_SFIvsNIT$entrez[!is.na(res_SFIvsNIT$entrez) &
+                                             res_SFIvsNIT$padj < 0.1]
+
+geneVector_ELIvsNIT <- res_ELIvsNIT$entrez[!is.na(res_ELIvsNIT$entrez) &
+                                             res_ELIvsNIT$padj < 0.1]
+
+geneVector_ELIvsSFI <- res_ELIvsSFI$entrez[!is.na(res_ELIvsSFI$entrez) &
+                                             res_ELIvsSFI$padj < 0.1]
+
 geneVector_universe <- keys(org.Hs.eg.db, keytype = "ENTREZID")
 ```
 
-#### Test de sobrerrepresentación de términos GO
+## Test de sobrerrepresentación de términos GO
 
-El análisis estadístico lo hemos realizado con la función _enrichGO()_ del paquete _clusterProfiler_ para el lenguaje R. Esta función devuelve un listado de términos GO estadísticamente más representados en nuestra lista de genes, con respecto a la lista Universo.
+El análisis estadístico lo hemos realizado con la función _enrichGO()_ del paquete _clusterProfiler_ para el lenguaje R. Esta función devuelve un listado de términos GO estadísticamente más representados en nuestra lista de genes de interés respecto de una lista de referencia (en este caso la lista que hemos llamado _Universo_.
+
+Para los efectos de este informe nos hemos limitado a explorar la sobrerrepresentación referida a los **procesos biológicos**; dejando a parte por motivos de tiempo y espacio el estudio de sobrerrepresentación en los términos referidos a funciones moleculares y componentes celulares.
+
+Sí hemos incluido, sin embargo, todas las comparaciones entre grupos (SFI vs NIT, ELI vs NIT y ELI vs SFI).
 
 ```{r test de sobrerrepresentacion}
 library(clusterProfiler)
 library(org.Hs.eg.db)
-# As universe, I will use all genes represented in the database
-if(file.exists("intermediateData/ego.RData")){
-  load("intermediateData/ego.RData")
+# SFI_NIT
+if(file.exists("intermediateData/ego_SFI_NIT.RData")){
+  load("intermediateData/ego_SFI_NIT.RData")
 }else{
-ego <- enrichGO(gene = geneVector_NITvsSFI,
+ego_SFI_NIT <- enrichGO(gene = geneVector_SFIvsNIT,
                 universe = geneVector_universe,
                 OrgDb = org.Hs.eg.db,
-                ont = "CC",
+                ont = "BP",
                 pAdjustMethod = "BH",
-                pvalueCutoff = 0.01,
+                pvalueCutoff = 0.05,
                 qvalueCutoff = 0.5,
                 readable = TRUE)
 
- save(ego, file="intermediateData/ego.RData")
+ save(ego_SFI_NIT, file="intermediateData/ego_SFI_NIT.RData")
+ write.csv(ego_SFI_NIT, file="results/ego_SFI_NIT.csv")
+}
+
+# ELI_NIT
+if(file.exists("intermediateData/ego_ELI_NIT.RData")){
+  load("intermediateData/ego_ELI_NIT.RData")
+}else{
+ego_ELI_NIT <- enrichGO(gene = geneVector_ELIvsNIT,
+                universe = geneVector_universe,
+                OrgDb = org.Hs.eg.db,
+                ont = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff = 0.05,
+                qvalueCutoff = 0.5,
+                readable = TRUE)
+
+ save(ego_ELI_NIT, file="intermediateData/ego_ELI_NIT.RData")
+ write.csv(ego_ELI_NIT, file="results/ego_ELI_NIT.csv")
+}
+
+# ELI_SFI
+if(file.exists("intermediateData/ego_ELI_SFI.RData")){
+  load("intermediateData/ego_ELI_SFI.RData")
+}else{
+ego_ELI_SFI <- enrichGO(gene = geneVector_ELIvsSFI,
+                universe = geneVector_universe,
+                OrgDb = org.Hs.eg.db,
+                ont = "BP",
+                pAdjustMethod = "BH",
+                pvalueCutoff = 0.05,
+                qvalueCutoff = 0.5,
+                readable = TRUE)
+
+ save(ego_ELI_SFI, file="intermediateData/ego_ELI_SFI.RData")
+ write.csv(ego_ELI_SFI, file="results/ego_ELI_SFI.csv")
 }
 ```
 
-#### Gene Set Enrichment Analysis
+El resultado del test es un listado de términos GO (junto con su descripción y estadísticos de test) sobrerrepresentados en nuestra lista, respecto a la lista de referencia. Los tres listados se pueden descargar completos en formato CSV desde XXXXeste enlaceXXXX.
 
-Este tipo de análisis está especializado en detectar situaciones en las que las diferencias de expresión son pequeñas, pero coordinadas para un grupo de genes relacionados. En este informe hemos utilizado la función _gseGO_ del paquete _cluseterProfiler_ para realizar este análisis.
-```{r Gene Set Enrichment Analysis, eval=FALSE}
-# Generate ranked named vector of genes
-gse_genelist <- res_SFIvsNIT[!is.na(res_SFIvsNIT$padj), ] # Remove NAs
-gse_genelist <- gse_genelist[gse_genelist$padj < 0.1, ] # FDR 10%
-gse_genelist <- setNames(abs(gse_genelist$log2FoldChange), # Named vector of fold changes
-                         rownames(gse_genelist))
-gse_genelist <- sort(gse_genelist, decreasing = TRUE) # Sort vector
-names(gse_genelist) <- gsub("\\..*", "", names(gse_genelist)) # Truncate version number
-
-
-egoset <- gseGO(geneList = gse_genelist,
-              OrgDb = org.Hs.eg.db,
-              ont = "ALL",
-              keyType = "ENSEMBL",
-              nPerm = 1000,
-              minGSSize = 100,
-              maxGSSize = 500,
-              pvalueCutoff = 0.1,
-              verbose = TRUE)
+```{r ejemplo listado sobrerrepresentacion}
+knitr::kable(
+  head(ego_SFI_NIT[, c("ID", "Description", "BgRatio")]),
+  row.names = FALSE,
+  caption = 'Ejemplo de términos GO sobrerrepresentados en la lista de genes con expresión diferencial para la comparación SFI vs NIT')
 ```
 
-<!-- El resultado ha sido el mismo que en el análisis anterior. No se ha detectado ningún grupo de genes especialmente representado en el listado de nuestros genes de interés con ARN diferencialmente poliadenilados. -->
+\newpage
 
-# Visualización de resultados
-## Gráfico de barras
-```{r enriquecimiento funcional barplot, fig.cap='Gráfico de barras para visualización de términos GO (componentes celulares) estadísticamente enriquecidos en la comparación NIT vs SFI. Se muestran los primeros veinte términos ordenados por p-valor ajustado en orden creciente.'}
+## Visualización de resultados: Gráficos de barras
+
+Una forma habitual de representar los resultados de sobrerrepresentación de términos GO es mediante gráficos de barras ordenados por el p-valor ajustado en orden creciente. En los siguientes gráficas se muestran, para cada comparación, los primeros veinte términos GO. El color de cada barra representa el p-valor ajustado, y su longitud el número de genes asociados al término GO:
+
+```{r enriquecimiento funcional barplot SFI-NIT, out.width='40%', fig.cap='Gráfico de barras para la comparación SFIT vs NIT.'}
 library('enrichplot')
 
-interfile <- "images/enri_barplot.png"
+interfile <- "images/enri_barplot_SFI_NIT.png"
+
+#SFI_NIT
+interfile <- "images/enri_barplot_SFI_NIT.png"
 
 if(file.exists(interfile)){
   knitr::include_graphics(interfile)
 }else{
   # Generate barplot
-barplot(ego, showCategory = 20)
+barplot(ego_SFI_NIT, showCategory = 20, title = "SFI vs NIT")
   # Save
   ggsave(filename = interfile)
   # Include in document
@@ -1151,13 +1153,47 @@ barplot(ego, showCategory = 20)
 }
 ```
 
-## Dot plot
-```{r over-representation dot plot, fig.cap='Gráfico de puntos representado 30 términos GO (componentes celulares) significativos en análisis de sobre-representación para la comparación de los grupos NIT vs. SFI. Ordenados por tasa génica. El color de los puntos representa el p-valor ajustado del análisis; el tamaño representa la cantidad de genes.'}
+```{r enriquecimiento funcional barplot ELI_NIT, out.width='40%', fig.cap='Gráfico de barras para la comparación ELI vs NIT.'}
+#ELI_NIT
+interfile <- "images/enri_barplot_ELI_NIT.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+  # Generate barplot
+barplot(ego_ELI_NIT, showCategory = 20, title = "ELI vs NIT")
+  # Save
+  ggsave(filename = interfile)
+  # Include in document
+  knitr::include_graphics(interfile)
+}
+```
+
+```{r enriquecimiento funcional barplot ELI_SFI, out.width='40%', fig.cap='Gráfico de barras para la comparación ELI vs SFI.'}
+#ELI_SFI
+interfile <- "images/enri_barplot_ELI_SFI.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+  # Generate barplot
+barplot(ego_ELI_SFI, showCategory = 20, title = "ELI vs SFI")
+  # Save
+  ggsave(filename = interfile)
+  # Include in document
+  knitr::include_graphics(interfile)
+}
+```
+
+Vemos que la mayoría de términos expuestos en las gráficas están relacionados con la inflamación y la respuesta inmunológica. En la comparación ELI-SFI llama la atención la aparición de rutas relacionadas con los neutrófilos y la regulación del ciclo celular.
+
+<!-- ## Dot plot -->
+```{r over-representation dot plot, fig.cap='Gráfico de puntos representado 30 términos GO (componentes celulares) significativos en análisis de sobre-representación para la comparación de los grupos NIT vs. SFI. Ordenados por tasa génica. El color de los puntos representa el p-valor ajustado del análisis; el tamaño representa la cantidad de genes.', eval=FALSE}
 dotplot(ego, showCategory = 30) + ggtitle('Dotplot the análisis de sobre-representación')
 ```
 
-## Red conceptual
-Con el gráfico de red conceptual representamos cómo un mismo gen puede pertenecer a varios términos.
+<!-- ## Red conceptual -->
+<!-- Con el gráfico de red conceptual representamos cómo un mismo gen puede pertenecer a varios términos. -->
 
 ```{r gene concept network, eval=FALSE}
 # Lo dejo fuera del informa final porque en la gráfica me salen tal cantidad de genes
@@ -1168,8 +1204,8 @@ egox <- setReadable(ego, 'org.Hs.eg.db', keyType = 'auto')
 cnetplot(egox, categorySize = 'pvalue')
 ```
 
-
 # Discusión
+
 
 
 # Apéndice A: Código
