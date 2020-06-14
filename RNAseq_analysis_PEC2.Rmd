@@ -1024,45 +1024,13 @@ grid.draw(unclevenn)
 grid.newpage()
 ```
 
-<!-- A partir del diagrama de Venn, vemos que **223** genes están diferencialmente poliadenilados sólo en las muestras "Control", y **627** sólo en las muestras "ASD". Son estos dos grupos de genes los que exploraremos para investigar las diferencias entre los grupos "Control" y "ASD". -->
+<!-- Los listados que me habrían interesado son:  
+- la unión de SFI-NIT y ELI-NIT menos ELI-SFI  
+- ELI-SFI menos la unión anterior 
 
-<!-- Otro grupo de genes interesantes serían aquellos cuyo perfil de up/down regulación cambia en muestras de sujetos control y sujetos ASD. -->
+Pero por falta de tiempo no los he obtenido.-->
 
-<!-- Estos tres grupos son los que marcarán nuestra lista definitiva de genes de interés. -->
-
-```{r lista definitiva interes, eval=FALSE}
-# Solo nos interesan aquellos genes que:
-## estan up o down regulados solo en uno de los grupos
-## estan up en un grupo y down en el otro
-dif.res.rows <- apply(res.selected, 1, function(x) {x[1] == x[2]})
-res.selected2 <- res.selected[dif.res.rows == FALSE, ]
-print(summary(res.selected2[, 1:2]))
-
-```
-
-```{r venn diagram lista interes, fig.height=4.5, fig.width=4.5, eval=FALSE}
-vennDiagram(res.selected2[, 1:2], cex=0.9)
-title("Genes en común entre dos comparaciones\n Seleccionados con FDR <0.1",
-      cex.main=0.9)
-```
-
-<!-- En resumen, encontramos **223** genes exclusivamente en sujetos "Control2 cuyos ARNm tienen colas diferencialmente largas o cortas.   -->
-<!-- Encontramos **627** genes exclusivamente en sujetos "ASD" cuyos ARNm tienen colas diferencialmente largas o cortas.   -->
-<!-- **Ningún** gen con diferenciación invertida entre comparaciones. -->
-```{r tablas listas genes exclusivos, eval=FALSE}
-write.csv2(geneAnots[geneAnots$ID %in% rownames(res.selected2), ],
-           file = "results/common-differential-genes.csv", row.names = FALSE)
-# Genes diferenciales exclusivos del grupo Control
-res.control <- res.selected2[(res.selected2[,1] != 0) == TRUE, ]
-write.csv2(geneAnots[geneAnots$ID %in% rownames(res.control), ],
-           file = "results/control-differential-genes.csv", row.names = FALSE)
-# Genes diferenciales exclusivos del grupo ASD
-res.ASD <- res.selected2[(res.selected2[,2] != 0) == TRUE, ]
-write.csv2(geneAnots[geneAnots$ID %in% rownames(res.ASD), ],
-           file = "results/ASD-differential-genes.csv", row.names = FALSE)
-```
-
-### Significatividad biológica
+# Significatividad biológica
 
 Una vez tenemos nuestras listas de genes anotadas, un herramienta más para interpretar los resultados del estudio es el examen de la significatividad biológica. En este informe, lo que hemos hecho es, a partir de las listas de genes con comportamiento diferencial, comprobar si existen funciones, procesos biológicos o rutas moleculares que aparezcan con más frecuencia en estas listas que en el resto de genes analizados.
 
