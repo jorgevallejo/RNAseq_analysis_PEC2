@@ -1057,7 +1057,11 @@ geneVector_universe <- keys(org.Hs.eg.db, keytype = "ENTREZID")
 
 ## Test de sobrerrepresentación de términos GO
 
-El análisis estadístico lo hemos realizado con la función _enrichGO()_ del paquete _clusterProfiler_ para el lenguaje R. Esta función devuelve un listado de términos GO estadísticamente más representados en nuestra lista de genes, con respecto a la lista Universo.
+El análisis estadístico lo hemos realizado con la función _enrichGO()_ del paquete _clusterProfiler_ para el lenguaje R. Esta función devuelve un listado de términos GO estadísticamente más representados en nuestra lista de genes de interés respecto de una lista de referencia (en este caso la lista que hemos llamado _Universo_.
+
+Para los efectos de este informe nos hemos limitado a explorar la sobrerrepresentación referida a los **procesos biológicos**; dejando a parte por motivos de tiempo y espacio el estudio de sobrerrepresentación en los términos referidos a funciones moleculares y componentes celulares.
+
+Sí hemos incluido, sin embargo, todas las comparaciones entre grupos (SFI vs NIT, ELI vs NIT y ELI vs SFI).
 
 ```{r test de sobrerrepresentacion}
 library(clusterProfiler)
@@ -1075,7 +1079,7 @@ ego_SFI_NIT <- enrichGO(gene = geneVector_SFIvsNIT,
                 qvalueCutoff = 0.5,
                 readable = TRUE)
 
- save(ego, file="intermediateData/ego_SFI_NIT.RData")
+ save(ego_SFI_NIT, file="intermediateData/ego_SFI_NIT.RData")
  write.csv(ego_SFI_NIT, file="results/ego_SFI_NIT.csv")
 }
 
@@ -1092,7 +1096,7 @@ ego_ELI_NIT <- enrichGO(gene = geneVector_ELIvsNIT,
                 qvalueCutoff = 0.5,
                 readable = TRUE)
 
- save(ego, file="intermediateData/ego_ELI_NIT.RData")
+ save(ego_ELI_NIT, file="intermediateData/ego_ELI_NIT.RData")
  write.csv(ego_ELI_NIT, file="results/ego_ELI_NIT.csv")
 }
 
@@ -1109,10 +1113,20 @@ ego_ELI_SFI <- enrichGO(gene = geneVector_ELIvsSFI,
                 qvalueCutoff = 0.5,
                 readable = TRUE)
 
- save(ego, file="intermediateData/ego_ELI_SFI.RData")
+ save(ego_ELI_SFI, file="intermediateData/ego_ELI_SFI.RData")
  write.csv(ego_ELI_SFI, file="results/ego_ELI_SFI.csv")
 }
 ```
+
+El resultado del test es un listado de términos GO (junto con su descripción y estadísticos de test) sobrerrepresentados en nuestra lista, respecto a la lista de referencia. Los tres listados se pueden descargar completos en formato CSV desde XXXXeste enlaceXXXX.
+
+```{r ejemplo listado sobrerrepresentacion}
+knitr::kable(
+  head(ego_SFI_NIT[, c("ID", "Description", "BgRatio")]),
+  row.names = FALSE,
+  caption = 'Ejemplo de términos GO sobrerrepresentados en la lista de genes con expresión diferencial para la comparación SFI vs NIT')
+```
+
 
 # Visualización de resultados
 ## Gráfico de barras
