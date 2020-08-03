@@ -771,8 +771,8 @@ negativo).
 <tr class="odd">
 <td>Regulación al alza</td>
 <td align="right">434</td>
-<td align="right">3 173</td>
-<td align="right">3 382</td>
+<td align="right">3 172</td>
+<td align="right">3 384</td>
 </tr>
 <tr class="even">
 <td>Regulación a la baja</td>
@@ -783,8 +783,8 @@ negativo).
 <tr class="odd">
 <td>Total</td>
 <td align="right">680</td>
-<td align="right">4 509</td>
-<td align="right">5 748</td>
+<td align="right">4 508</td>
+<td align="right">5 750</td>
 </tr>
 </tbody>
 </table>
