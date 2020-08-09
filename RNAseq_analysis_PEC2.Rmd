@@ -9,6 +9,7 @@ output:
   pdf_document:
     number_sections: true
     toc: true
+urlcolor: blue
 header-includes:
   - \renewcommand{\contentsname}{Índice}
   
