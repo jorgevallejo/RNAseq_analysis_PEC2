@@ -4,7 +4,7 @@ subtitle: "Análisis Datos Ómicos - PEC 2"
 author: "Jorge Vallejo Ortega"
 date: '`r format(Sys.Date(),"%e de %B, %Y")`'
 output:
-  github_document: default
+  github: default
   html_document:
     toc: true
   pdf_document:
