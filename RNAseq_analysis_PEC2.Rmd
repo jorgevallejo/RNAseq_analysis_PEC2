@@ -4,12 +4,12 @@ subtitle: "Análisis Datos Ómicos - PEC 2"
 author: "Jorge Vallejo Ortega"
 date: '`r format(Sys.Date(),"%e de %B, %Y")`'
 output:
-  md_document: default
   html_document:
     toc: true
   pdf_document:
     number_sections: true
     toc: true
+urlcolor: blue
 header-includes:
   - \renewcommand{\contentsname}{Índice}
   
