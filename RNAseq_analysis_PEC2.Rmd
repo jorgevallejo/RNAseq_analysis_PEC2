@@ -115,8 +115,6 @@ Los pasos seguidos para realizar el presente análisis han sido los siguientes:
 7. Comparación entre comparaciones.  
 8. Análisis del enriquecimiento de rutas.
 
-<a name="obtencion"></a>  
-
 ### Obtención de los datos en bruto {#obtencion}
 
 Como se ha señalado anteriormente, hemos recibido dos archivos con formato CSV conteniendo los datos pre-procesados de 292 muestras, de las cuales debíamos seleccionar al azar 10 de cada grupo experimental (en total 30 muestras).
@@ -1230,9 +1228,7 @@ Por último, una corta reflexión acerca de la enorme cantidad de datos producid
 El documento original en formato .Rmd, que incluye el código completo en lenguaje R usado para generar este informe, se puede consultar y descargar en el siguiente repositorio de Github:
 [jorgevallejo/RNAseq_analysis_PEC2](https://github.com/jorgevallejo/RNAseq_analysis_PEC2)
 
-<a name="apendiceB"></a>
-
-# Apéndice B: Reproducibilidad
+# Apéndice B: Reproducibilidad {#apendiceB}
 ```{r session_info, include=TRUE, echo=TRUE, results='markup'}
 sessionInfo() # For better reproducibility
 ```
