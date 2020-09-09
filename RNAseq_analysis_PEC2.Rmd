@@ -9,9 +9,11 @@ output:
   pdf_document:
     number_sections: true
     toc: true
+    extra_dependencies: ["float"]
 urlcolor: blue
 header-includes:
   - \renewcommand{\contentsname}{Índice}
+  - \usepackage{float}
   
 # Next code for knitting both types of documents automatically comes from https://stackoverflow.com/questions/39662365/knit-one-markdown-file-to-two-output-files/53280491#53280491
 knit: (function(inputFile, encoding) {
@@ -271,7 +273,7 @@ histo_pseudocounts <- ggplot(pseudoCounts,
 }
 ```
 
-```{r print histocounts and histopseudocounts, out.width='75%', fig.cap='(izq.) Las cuentas de los genes en la muestra presentan una distribución fuertemente asimétrica hacia números bajos. La transformación en pseudocuentas (der.) produce un perfil de frecuencias más parecido a la distribución normal.'}
+```{r print histocounts and histopseudocounts, out.width='75%', fig.cap='(izq.) Las cuentas de los genes en la muestra presentan una distribución fuertemente asimétrica hacia números bajos. La transformación en pseudocuentas (der.) produce un perfil de frecuencias más parecido a la distribución normal.', out.extra='', fig.pos="H"}
 
 interfile <- "images/histo_pseudo.png"
 
@@ -292,7 +294,7 @@ rm(list = c("histo_counts", "histo_pseudocounts"))
 #### Distribución de pseudocuentas por muestra (diagramas de cajas)
 Con los diagramas de cajas podemos observar y comparar la distribución de las pseudocuentas en las diferentes muestras. Esto comprobar si alguna de las muestras presenta una distribución radicalmente distinta del resto, lo que sería señal de algún error o problema con esa muestra:
 
-```{r boxplots, out.width='75%', fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.'}
+```{r boxplots, out.width='75%', fig.cap='Diagramas de cajas construidos a partir de las pseudocuentas de los datos. Cada color representa un grupo experimental. La distribución de datos es similar en todas las muestras.', fig.pos="H"}
 library('reshape')
 
 # Melt pseudocounts
@@ -333,7 +335,7 @@ if(file.exists(interfile)){
 
 Los histogramas nos ofrecen una perspectiva diferente sobre la distribución de las pseudocuentas, más detallada que los diagramas de cajas.
 
-```{r histograms and density plots, out.width='75%', fig.cap='Histogramas suavizados de densidades de pseudocuentas en cada muestra, separados por grupo experimental.'}
+```{r histograms and density plots, out.width='75%', fig.cap='Histogramas suavizados de densidades de pseudocuentas en cada muestra, separados por grupo experimental.', fig.pos="H"}
 
 interfile <- "images/histo_density.png"
 
@@ -361,7 +363,7 @@ En general, el perfil de los histogramas es muy parecido para todas las muestras
 #### Mapa de calor
 Los mapas de calor ayudan a explorar los parecidos y diferencias entre muestras. Mediante colores que representan las distancias entre muestras, y agrupando jerárquicamente muestras según su similaridad.
 
-```{r heatmap of sample-to-sample distance, out.width='75%'}
+```{r heatmap of sample-to-sample distance}
 mat.dist <- as.matrix(dist(t(pseudoCounts)))
 mat.dist <- mat.dist/max(mat.dist)
 
@@ -369,7 +371,7 @@ library('RColorBrewer')
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(255)
 
 ```
-```{r heatmap 2, fig.cap='Mapa de calor de la distancia relativa entre muestras. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
+```{r heatmap 2, fig.cap='Mapa de calor de la distancia relativa entre muestras. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.', out.width='75%', fig.pos="H"}
 library(gplots)
 
 heatmap.2(mat.dist,
@@ -416,7 +418,7 @@ Por lo que podemos ver en el mapa de calor, la mayor parte de las muestras del g
 
 Al aplicar el análisis sobre nuestros datos, esperamos que las muestras se agrupen por grupo experimental y, probablemente, por sexo.
 
-```{r plot PCA, out.width='50%', fig.cap='Análisis de componentes principales. PC1: Fuente principal de variabilidad entre muestras. Parece corresponder al grupo experimental. PC2: Segunda mayor fuente de variabilidad entre muestras. Separa claramente las muestras de hembras y varones.'}
+```{r plot PCA, out.width='50%', fig.cap='Análisis de componentes principales. PC1: Fuente principal de variabilidad entre muestras. Parece corresponder al grupo experimental. PC2: Segunda mayor fuente de variabilidad entre muestras. Separa claramente las muestras de hembras y varones.', fig.pos="H"}
 library('DESeq2')
 library('Biobase')
 
@@ -526,7 +528,7 @@ df <- bind_rows(
   as_data_frame(assay(vsd)[, 1:2]) %>% mutate(transformation = "vst")
 )
 ```
-```{r variabilidad expresion en dos muestras, out.width='50%', fig.cap='La mayor variabilidad en la expresión génica se encuentra en aquellos genes con menos cuentas. La transformación estabilizadora de varianza (VST) elimina dicha variabilidad.'}
+```{r variabilidad expresion en dos muestras, out.width='50%', fig.cap='La mayor variabilidad en la expresión génica se encuentra en aquellos genes con menos cuentas. La transformación estabilizadora de varianza (VST) elimina dicha variabilidad.', fig.pos="H"}
 library('ggplot2')
 
 interfile <- "images/variabilidad.png"
@@ -564,7 +566,7 @@ mat.dist <- mat.dist/max(mat.dist)
 library('RColorBrewer')
 hmcol <- colorRampPalette(brewer.pal(9, "GnBu"))(255)
 ```
-```{r draw heatmap transformed data, out.width='75%', fig.cap='Mapa de calor de la distancia relativa entre muestras, a partir de datos transformados. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.'}
+```{r draw heatmap transformed data, out.width='75%', fig.cap='Mapa de calor de la distancia relativa entre muestras, a partir de datos transformados. El dendrograma en la parte superior agrupa las muestras jerárquicamente por proximidad.', fig.pos="H"}
 
 heatmap.2(mat.dist,
           Rowv = TRUE,
@@ -606,7 +608,7 @@ La mayor parte de las muestras del grupo ELI (infiltraciones amplias) se reúnen
 
 ### Análisis de componentes principales
 
-```{r PCA plot con datos VST, out.width='50%', fig.cap='Gráfica de análisis de componentes principales. Cada marca representa una muestra, codificada según el grupo experimental al que pertence (color) y el sexo (forma).'}
+```{r PCA plot con datos VST, out.width='50%', fig.cap='Gráfica de análisis de componentes principales. Cada marca representa una muestra, codificada según el grupo experimental al que pertence (color) y el sexo (forma).', fig.pos="H"}
 # DESeq2::plotPCA(vsd, intgroup = c("Group", "sex"))
 pcaData <- plotPCA(vsd, intgroup=c("Group", "sex"), returnData=TRUE)
 percentVar <- round(100 * attr(pcaData, "percentVar"))
@@ -914,7 +916,7 @@ Otro detalle interesante es que el total de genes diferencialmente expresados es
 
 Para comprobar que no estamos introduciendo errores durante el análisis representamos, de cada comparación, un histograma de los p-valores no ajustados de cada gen. El perfil esperado es el de un pico de genes cercanos al valor 0, y el resto de genes repartidos por el abanico de probabilidades. Desviaciones de ese perfil indicarían algún fallo en los datos o en nuestro tratamiento de estos.
 
-```{r histogram of unadjusted p values, fig.cap="Histogramas de p-valores no ajustados de cada gen. El perfil observado es el esperado; un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades."}
+```{r histogram of unadjusted p values, fig.cap="Histogramas de p-valores no ajustados de cada gen. El perfil observado es el esperado; un pico de genes cercanos al valor 0, y el resto de genes repartidos en el abanico de probabilidades.", fig.pos="H"}
 par(mfrow = c(2,2))
 hist(res_SFIvsNIT$pvalue[res_SFIvsNIT$baseMean > 1], breaks = 100,
      col = "grey50", border = "white", yaxt = 'n',
@@ -943,7 +945,7 @@ load("intermediateData/vsd.RData")
 topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 20)
 ```
 
-```{r draw a heatmap, fig.cap= 'Mapa de calor de los 20 genes con mayor variación entre muestras. Cada columna representa una muestra, y cada fila representa uno de los genes.'}
+```{r draw a heatmap, fig.cap= 'Mapa de calor de los 20 genes con mayor variación entre muestras. Cada columna representa una muestra, y cada fila representa uno de los genes.', fig.pos="H"}
 library(pheatmap)
 mat <- assay(vsd)[topVarGenes, ]
 # Calculate the amount by which each gene deviates in a specific sample
@@ -1140,7 +1142,7 @@ knitr::kable(
 
 Una forma habitual de representar los resultados de sobrerrepresentación de términos GO es mediante gráficos de barras ordenados por el p-valor ajustado en orden creciente. En los siguientes gráficas se muestran, para cada comparación, los primeros veinte términos GO. El color de cada barra representa el p-valor ajustado, y su longitud el número de genes asociados al término GO:
 
-```{r enriquecimiento funcional barplot SFI-NIT, out.width='40%', fig.cap='Gráfico de barras para la comparación SFIT vs NIT.'}
+```{r enriquecimiento funcional barplot SFI-NIT, out.width='40%', fig.cap='Gráfico de barras para la comparación SFIT vs NIT.', fig.pos="H"}
 library('enrichplot')
 
 interfile <- "images/enri_barplot_SFI_NIT.png"
@@ -1160,7 +1162,7 @@ barplot(ego_SFI_NIT, showCategory = 20, title = "SFI vs NIT")
 }
 ```
 
-```{r enriquecimiento funcional barplot ELI_NIT, out.width='40%', fig.cap='Gráfico de barras para la comparación ELI vs NIT.'}
+```{r enriquecimiento funcional barplot ELI_NIT, out.width='40%', fig.cap='Gráfico de barras para la comparación ELI vs NIT.', fig.pos="H"}
 #ELI_NIT
 interfile <- "images/enri_barplot_ELI_NIT.png"
 
@@ -1176,7 +1178,7 @@ barplot(ego_ELI_NIT, showCategory = 20, title = "ELI vs NIT")
 }
 ```
 
-```{r enriquecimiento funcional barplot ELI_SFI, out.width='40%', fig.cap='Gráfico de barras para la comparación ELI vs SFI.'}
+```{r enriquecimiento funcional barplot ELI_SFI, out.width='40%', fig.cap='Gráfico de barras para la comparación ELI vs SFI.', fig.pos="H"}
 #ELI_SFI
 interfile <- "images/enri_barplot_ELI_SFI.png"
 
