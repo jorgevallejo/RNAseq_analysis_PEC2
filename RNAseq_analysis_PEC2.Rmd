@@ -950,19 +950,30 @@ topVarGenes <- head(order(rowVars(assay(vsd)), decreasing = TRUE), 20)
 
 ```{r draw a heatmap, fig.cap= 'Mapa de calor de los 20 genes con mayor variación entre muestras. Cada columna representa una muestra, y cada fila representa uno de los genes.', fig.pos="H"}
 library(pheatmap)
-mat <- assay(vsd)[topVarGenes, ]
-# Calculate the amount by which each gene deviates in a specific sample
-# from the gene average across the samples
-mat <- mat - rowMeans(mat)
-anno <- data.frame(Grupo = colData(vsd)[, c("Group")],
-                   Sexo = colData(vsd)[, c("sex")])
-rownames(anno) <- colnames(mat)
-pheatmap(mat, annotation_col = anno,
-         angle_col = 90,
-         cutree_rows = 4,
-         cutree_cols = 4,
-         fontsize_row = 8,
-         fontsize_col = 7)
+
+interfile <- "heatmap2.png"
+
+if(file.exists(interfile)){
+  knitr::include_graphics(interfile)
+}else{
+  mat <- assay(vsd)[topVarGenes, ]
+  # Calculate the amount by which each gene deviates in a specific sample
+  # from the gene average across the samples
+  mat <- mat - rowMeans(mat)
+  anno <- data.frame(Grupo = colData(vsd)[, c("Group")],
+                     Sexo = colData(vsd)[, c("sex")])
+  rownames(anno) <- colnames(mat)
+  heatmap2 <- pheatmap(mat, annotation_col = anno,
+           angle_col = 90,
+           cutree_rows = 4,
+           cutree_cols = 4,
+           fontsize_row = 8,
+           fontsize_col = 7)
+  # Save figure to illustrate the README document
+  ggsave(heatmap2, filename = interfile)
+  # Include in document
+  knitr::include_graphics(interfile)
+}
 
 ```
 
