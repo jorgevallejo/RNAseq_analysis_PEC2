@@ -843,10 +843,8 @@ knitr::kable(head(res_ELIvsSFI[, c(7, 9, 6, 2)]), # Select columns
 
 Las listas completas de genes con expresión diferencial entre los diferentes grupos pueden descargarse como archivos en formato CSV desde estos enlaces:  
 [SFI vs NIT](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/res_SFIvsNIT.csv)  
-[ELI vs NIT](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/res_ELIvsNIT.csv) 
+[ELI vs NIT](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/res_ELIvsNIT.csv)  
 [ELI vs SFI](https://github.com/jorgevallejo/RNAseq_analysis_PEC2/blob/master/results/res_ELIvsSFI.csv)
-
-\newpage
 
 ## Cuantificación de genes diferencialmente expresados
 
@@ -876,6 +874,8 @@ knitr::kable(sumas,
 
 rm(sumas)
 ```
+
+\newpage
 
 ### Gráficas de resultados
 
@@ -911,6 +911,8 @@ plotMA(res_ELIvsSFI,
 Tanto en la tabla como en las gráficas podemos ver que en las comparaciónes del grupo control (NIT) con los grupos patológicos (SFI y ELI), los genes regulados al alza (con más expresión en tejido patológico que en tejido normal) son mayoría, aproximadamente el doble. En la comparación ELI-NIT la diferencia de proporción entre genes regulados al alza y a la baja no es tan grande.
 
 Otro detalle interesante es que el total de genes diferencialmente expresados es mucho menor en la comparación SFI-NIT que en las otras dos comparaciones. Como ya veíamos en el análisis de componentes principales y en el mapa de calor, las muestras NIT y SFI presentan perfiles de expresión génica más parecidos entre sí que con las muestras ELI.
+
+\newpage
 
 #### Histograma de p-valores no ajustados
 
@@ -966,6 +968,8 @@ pheatmap(mat, annotation_col = anno,
 Vemos que las muestras se reúnen en dos grandes grupos; uno de ellos el grupo control (NIT) junto con algunas muestras SFI, y el otro grupo una mezcla de muestras ELI y SFI. Resulta muy interesante que esas dos grandes agrupaciones de muestras estén divididas a su vez en sub-agrupaciones por sexo.
 
 En cuanto a las agrupaciones de genes, vemos que esta lista de los 20 genes con mayor varianza entre muestras está muy influenciada por el sexo de la muestra y que dos de sus agrupaciones (la del extremo superior y la del extremo inferior) presentan un patrón de expresión diferencial dependiente principalmente del sexo.
+
+\newpage
 
 # Comparaciones múltiples
 Debido a que los grupos experimentales corresponden a grupo control (NIT), síntomas suaves (SFI), y síntomas severos (ELI); puede ser de gran interés saber qué genes presentan expresión diferencial, por ejemplo, en las comparaciones del grupo control frente a los grupos con síntomas,y qué genes presentan expresión diferencial sólo en las comparaciones entre grupos con síntomas pero no cuando se compara con el grupo control.
