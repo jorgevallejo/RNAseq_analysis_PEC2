@@ -1,6 +1,6 @@
 # README to "Análisis de datos de expresión (RNA-seq) en muestras de infiltración de tiroides". What is this?
 
-[Gene expression heat map from the report](heatmap2.png)
+![Gene expression heat map from the report](heatmap2.png)
 
 This report is an exercise from the course 'Análisis de Datos Ómicos' in UOC's degree 'Bioinformática y Bioestadística'.
 
