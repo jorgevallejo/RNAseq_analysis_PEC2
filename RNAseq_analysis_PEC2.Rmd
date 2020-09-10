@@ -530,6 +530,7 @@ df <- bind_rows(
 ```
 ```{r variabilidad expresion en dos muestras, out.width='50%', fig.cap='La mayor variabilidad en la expresión génica se encuentra en aquellos genes con menos cuentas. La transformación estabilizadora de varianza (VST) elimina dicha variabilidad.', fig.pos="H"}
 library('ggplot2')
+library('hexbin')
 
 interfile <- "images/variabilidad.png"
 
